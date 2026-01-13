@@ -11,7 +11,7 @@ services:
     environment:
       WEBSITES: '[{"name":"主站","logPath":"/var/log/nginx/access.log","domains":["example.com","www.example.com"]}]'
     volumes:
-      - /var/log/nginx:/var/log/nginx:ro
+      - ./nginx_data/logs/all/access.log:/var/log/nginx/access.log:ro
       - ./var/nginxpulse_data:/app/var/nginxpulse_data
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped

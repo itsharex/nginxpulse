@@ -47,7 +47,7 @@ docker run -d --name nginxpulse \
   -p 8089:8089 \
   -e WEBSITES='[{"name":"主站","logPath":"/var/log/nginx/access.log","domains":["example.com","www.example.com"]}]' \
   -e SERVER_PORT=":8089" \
-  -v /var/log/nginx:/var/log/nginx:ro \
+  -v ./nginx_data/logs/all/access.log:/var/log/nginx/access.log:ro \
   -v "$(pwd)/var/nginxpulse_data:/app/var/nginxpulse_data" \
   magiccoders/nginxpulse:latest
 ```
@@ -60,7 +60,7 @@ docker run -d --name nginxpulse \
   -p 8088:8088 \
   -p 8089:8089 \
   -e WEBSITES='[{"name":"主站","logPath":"/var/log/nginx/access.log","domains":["example.com","www.example.com"]}]' \
-  -v /var/log/nginx:/var/log/nginx:ro \
+  -v ./nginx_data/logs/all/access.log:/var/log/nginx/access.log:ro \
   -v "$(pwd)/var/nginxpulse_data:/app/var/nginxpulse_data" \
   nginxpulse:local
 ```
@@ -94,7 +94,7 @@ services:
     environment:
       WEBSITES: '[{"name":"主站","logPath":"/var/log/nginx/access.log","domains":["example.com","www.example.com"]}]'
     volumes:
-      - /var/log/nginx:/var/log/nginx:ro
+      - ./nginx_data/logs/all/access.log:/var/log/nginx/access.log:ro
       - ./var/nginxpulse_data:/app/var/nginxpulse_data
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
@@ -116,7 +116,7 @@ services:
     environment:
       WEBSITES: '[{"name":"主站","logPath":"/var/log/nginx/access.log","domains":["example.com","www.example.com"]}]'
     volumes:
-      - /var/log/nginx:/var/log/nginx:ro
+      - ./nginx_data/logs/all/access.log:/var/log/nginx/access.log:ro
       - ./var/nginxpulse_data:/app/var/nginxpulse_data
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
