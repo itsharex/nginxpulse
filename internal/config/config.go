@@ -42,6 +42,7 @@ type SystemConfig struct {
 	LogRetentionDays int      `json:"logRetentionDays"`
 	DemoMode         bool     `json:"demoMode"`
 	AccessKeys       []string `json:"accessKeys"`
+	Language         string   `json:"language"`
 }
 
 type ServerConfig struct {

@@ -170,6 +170,9 @@ services:
   - 开启演示模式，定时生成模拟日志并直接写入数据库（不再解析日志文件）。
 - `ACCESS_KEYS`（可选，默认：空）
   - 访问密钥列表（JSON 数组或逗号分隔），配置后将启用访问限制。
+- `APP_LANGUAGE`（可选，默认：`zh-CN`）
+  - 系统默认语言，支持 `zh-CN` / `en-US`（也接受 `zh`、`en`）。
+  - 会同步影响 IP 归属地在线查询返回语言。
 - `SERVER_PORT`（可选，默认：`:8089`）
   - 服务监听地址，可传 `:8089` 或 `8089`，不带冒号会自动补上。
 - `PV_STATUS_CODES`（可选，默认：`[200]`）
@@ -182,6 +185,10 @@ services:
 访问：
 - 前端：`http://localhost:8088`
 - 后端：`http://localhost:8089`
+
+前端语言：
+- 默认语言由后端 `APP_LANGUAGE` / 配置文件 `system.language` 决定。
+- 可通过 URL 参数覆盖：`?lang=en` 或 `?locale=en-US`。
 
 > PV_EXCLUDE_PATTERNS和PV_EXCLUDE_IPS的具体格式请参考[nginxpulse_config.json](configs/nginxpulse_config.json)
 

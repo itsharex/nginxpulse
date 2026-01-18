@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { i18n } from '@/i18n';
 
 const ACCESS_KEY_STORAGE = 'nginxpulse_access_key';
 const ACCESS_KEY_HEADER = 'X-NginxPulse-Key';
@@ -24,7 +25,8 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error?.response?.status;
-    const message = error?.response?.data?.error || error?.message || '请求失败';
+    const fallback = i18n.global.t('common.requestFailed');
+    const message = error?.response?.data?.error || error?.message || fallback;
     if (status === 401) {
       window.dispatchEvent(
         new CustomEvent(ACCESS_KEY_EVENT, {

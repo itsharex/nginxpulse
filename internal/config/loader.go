@@ -20,6 +20,7 @@ const (
 	envPVExcludeIPs      = "PV_EXCLUDE_IPS"
 	envDemoMode          = "DEMO_MODE"
 	envAccessKeys        = "ACCESS_KEYS"
+	envLanguage          = "APP_LANGUAGE"
 )
 
 var (
@@ -43,6 +44,7 @@ var (
 		LogRetentionDays: 30,
 		DemoMode:         false,
 		AccessKeys:       nil,
+		Language:         "zh-CN",
 	}
 	defaultServer = ServerConfig{
 		Port: ":8089",
@@ -144,6 +146,10 @@ func applyEnvOverrides(cfg *Config) error {
 		cfg.System.AccessKeys = values
 	}
 
+	if raw, _ := getEnvValue(envLanguage); raw != "" {
+		cfg.System.Language = raw
+	}
+
 	if raw, _ := getEnvValue(envServerPort); raw != "" {
 		if !strings.Contains(raw, ":") {
 			raw = ":" + raw
@@ -188,6 +194,10 @@ func applyDefaults(cfg *Config) {
 	if cfg.System.LogRetentionDays <= 0 {
 		cfg.System.LogRetentionDays = defaultSystem.LogRetentionDays
 	}
+	if cfg.System.Language == "" {
+		cfg.System.Language = defaultSystem.Language
+	}
+	cfg.System.Language = NormalizeLanguage(cfg.System.Language)
 	if cfg.Server.Port == "" {
 		cfg.Server.Port = defaultServer.Port
 	}

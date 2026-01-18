@@ -11,6 +11,7 @@ export interface AppStatusResponse {
   log_parsing: boolean;
   log_parsing_progress?: number;
   demo_mode?: boolean;
+  language?: string;
   version?: string;
   git_commit?: string;
 }

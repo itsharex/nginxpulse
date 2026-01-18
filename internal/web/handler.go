@@ -48,6 +48,7 @@ func SetupRoutes(
 			"log_parsing":          ingest.IsIPParsing(),
 			"log_parsing_progress": ingest.GetIPParsingProgress(),
 			"demo_mode":            cfg.System.DemoMode,
+			"language":             config.NormalizeLanguage(cfg.System.Language),
 			"version":              version.Version,
 			"git_commit":           version.GitCommit,
 		})

@@ -1,6 +1,6 @@
 <template>
   <div class="select-group">
-    <label v-if="label" class="select-label" :for="selectId">{{ label }}</label>
+    <label v-if="labelText" class="select-label" :for="selectId">{{ labelText }}</label>
     <Dropdown
       :inputId="selectId"
       v-model="selectedValue"
@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { WebsiteInfo } from '@/api/types';
 
 const props = withDefaults(
@@ -31,11 +32,8 @@ const props = withDefaults(
     emptyText?: string;
   }>(),
   {
-    label: '站点',
     id: 'website-selector',
     loading: false,
-    loadingText: '加载中...',
-    emptyText: '没有可用的网站',
   }
 );
 
@@ -43,19 +41,23 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void;
 }>();
 
+const { t } = useI18n({ useScope: 'global' });
 const selectId = computed(() => props.id || 'website-selector');
 const disabled = computed(() => props.loading || props.websites.length === 0);
+const labelText = computed(() => props.label ?? t('common.website'));
+const loadingText = computed(() => props.loadingText ?? t('common.loading'));
+const emptyText = computed(() => props.emptyText ?? t('common.emptyWebsite'));
 const selectedValue = computed({
   get: () => props.modelValue,
   set: (value: string) => emit('update:modelValue', value),
 });
 const placeholderText = computed(() => {
   if (props.loading) {
-    return props.loadingText;
+    return loadingText.value;
   }
   if (!props.websites.length) {
-    return props.emptyText;
+    return emptyText.value;
   }
-  return '请选择站点';
+  return t('common.selectWebsite');
 });
 </script>

@@ -1,9 +1,9 @@
 <template>
   <div class="logs-layout">
     <header class="page-header">
-      <div class="page-title">
-        <span class="title-chip">访问明细</span>
-        <p class="title-sub">原始日志追踪 · 条件筛选 · 分页查看</p>
+    <div class="page-title">
+        <span class="title-chip">{{ t('logs.title') }}</span>
+        <p class="title-sub">{{ t('logs.subtitle') }}</p>
       </div>
       <div class="header-actions">
         <WebsiteSelect
@@ -11,7 +11,7 @@
           :websites="websites"
           :loading="websitesLoading"
           id="logs-website-selector"
-          label="站点"
+          :label="t('common.website')"
         />
         <ThemeToggle />
       </div>
@@ -23,10 +23,10 @@
           <InputText
             v-model="searchInput"
             class="search-input"
-            placeholder="搜索日志..."
+            :placeholder="t('logs.searchPlaceholder')"
             @keyup.enter="applySearch"
           />
-          <Button class="search-btn" severity="primary" @click="applySearch">搜索</Button>
+          <Button class="search-btn" severity="primary" @click="applySearch">{{ t('common.search') }}</Button>
           <Button
             class="reparse-btn"
             outlined
@@ -39,10 +39,10 @@
         <div class="sort-controls">
           <div class="filter-toggle-container">
             <Checkbox v-model="excludeInternal" inputId="exclude-internal" binary />
-            <label for="exclude-internal">屏蔽内网IP</label>
+            <label for="exclude-internal">{{ t('logs.excludeInternal') }}</label>
           </div>
           <div class="sort-field-container">
-            <label for="sort-field">排序字段:</label>
+            <label for="sort-field">{{ t('logs.sortField') }}</label>
             <Dropdown
               inputId="sort-field"
               v-model="sortField"
@@ -53,7 +53,7 @@
             />
           </div>
           <div class="sort-order-container">
-            <label for="sort-order">顺序:</label>
+            <label for="sort-order">{{ t('logs.sortOrder') }}</label>
             <Dropdown
               inputId="sort-order"
               v-model="sortOrder"
@@ -64,7 +64,7 @@
             />
           </div>
           <div class="page-size-container">
-            <label for="page-size">每页行数:</label>
+            <label for="page-size">{{ t('logs.pageSize') }}</label>
             <Dropdown
               inputId="page-size"
               v-model="pageSize"
@@ -78,7 +78,7 @@
       </div>
     </div>
     <div v-if="ipParsing" class="logs-ip-notice">
-      日志IP解析中<span v-if="ipParsingProgressText">（已完成 {{ ipParsingProgressText }}）</span>，请稍后刷新
+      {{ t('logs.ipParsing', { progress: ipParsingProgressLabel }) }}
     </div>
 
     <div class="card logs-table-box">
@@ -86,25 +86,25 @@
         <table class="logs-table">
           <thead>
             <tr>
-              <th>时间</th>
-              <th>IP</th>
-              <th>位置</th>
-              <th>请求</th>
-              <th>状态</th>
-              <th>流量</th>
-              <th>来源</th>
-              <th>浏览器</th>
-              <th>系统</th>
-              <th>设备</th>
-              <th>PV</th>
+              <th>{{ t('logs.time') }}</th>
+              <th>{{ t('common.ip') }}</th>
+              <th>{{ t('common.location') }}</th>
+              <th>{{ t('logs.request') }}</th>
+              <th>{{ t('common.status') }}</th>
+              <th>{{ t('common.traffic') }}</th>
+              <th>{{ t('logs.source') }}</th>
+              <th>{{ t('common.browser') }}</th>
+              <th>{{ t('common.os') }}</th>
+              <th>{{ t('common.device') }}</th>
+              <th>{{ t('common.pageview') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="11">加载中...</td>
+              <td colspan="11">{{ t('common.loading') }}</td>
             </tr>
             <tr v-else-if="logs.length === 0">
-              <td colspan="11">没有找到日志数据</td>
+              <td colspan="11">{{ t('logs.empty') }}</td>
             </tr>
             <tr v-else v-for="(log, index) in logs" :key="index">
               <td :title="log.time">{{ log.time }}</td>
@@ -129,11 +129,11 @@
     <div class="card pagination-box">
       <div class="pagination-controls">
         <Button class="page-btn" outlined :disabled="loading || currentPage <= 1" @click="prevPage">
-          &lt; 上一页
+          &lt; {{ t('logs.prevPage') }}
         </Button>
         <div class="pagination-center">
           <div class="page-info">
-            <span>第 <span>{{ currentPage }}</span> 页，共 <span>{{ totalPages }}</span> 页</span>
+            <span>{{ t('logs.pageInfo', { current: currentPage, total: totalPages }) }}</span>
           </div>
           <div class="page-jump">
             <InputNumber
@@ -148,11 +148,11 @@
               :placeholder="`1-${totalPages || 1}`"
               @keyup.enter="jumpToPage"
             />
-            <Button class="page-btn" outlined :disabled="loading" @click="jumpToPage">跳转</Button>
+            <Button class="page-btn" outlined :disabled="loading" @click="jumpToPage">{{ t('logs.jump') }}</Button>
           </div>
         </div>
         <Button class="page-btn" outlined :disabled="loading || currentPage >= totalPages" @click="nextPage">
-          下一页 &gt;
+          {{ t('logs.nextPage') }} &gt;
         </Button>
       </div>
     </div>
@@ -167,31 +167,31 @@
     >
       <div class="reparse-dialog-body">
         <template v-if="reparseDialogMode === 'blocked'">
-          <p>当前处于演示模式，演示数据不支持重新解析。</p>
+          <p>{{ t('logs.reparseBlocked') }}</p>
         </template>
         <template v-else>
           <p>
-            该操作将清空「{{ currentWebsiteLabel }}」现有访问明细，并从日志文件重新解析。
+            {{ t('logs.reparseConfirm', { name: currentWebsiteLabel }) }}
           </p>
-          <p class="reparse-dialog-note">解析过程不可撤销，可能需要几分钟。</p>
+          <p class="reparse-dialog-note">{{ t('logs.reparseNote') }}</p>
         </template>
         <p v-if="reparseError" class="reparse-dialog-error">{{ reparseError }}</p>
       </div>
       <template #footer>
         <template v-if="reparseDialogMode === 'blocked'">
-          <Button label="我知道了" @click="reparseDialogVisible = false" />
+          <Button :label="t('logs.reparseAcknowledge')" @click="reparseDialogVisible = false" />
         </template>
         <template v-else>
           <Button
             text
             severity="secondary"
-            label="取消"
+            :label="t('logs.reparseCancel')"
             :disabled="reparseLoading"
             @click="reparseDialogVisible = false"
           />
           <Button
             severity="danger"
-            label="继续重新解析"
+            :label="t('logs.reparseSubmit')"
             :loading="reparseLoading"
             @click="confirmReparse"
           />
@@ -203,10 +203,13 @@
 
 <script setup lang="ts">
 import { computed, inject, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import Dialog from 'primevue/dialog';
 import { fetchLogs, fetchWebsites, reparseLogs } from '@/api';
 import type { WebsiteInfo } from '@/api/types';
 import { formatTraffic, getUserPreference, saveUserPreference } from '@/utils';
+import { formatBrowserLabel, formatDeviceLabel, formatLocationLabel, formatOSLabel, formatRefererLabel } from '@/i18n/mappings';
+import { normalizeLocale } from '@/i18n';
 import ThemeToggle from '@/components/ThemeToggle.vue';
 import WebsiteSelect from '@/components/WebsiteSelect.vue';
 
@@ -229,17 +232,20 @@ const reparseError = ref('');
 const reparseDialogMode = ref<'confirm' | 'blocked'>('confirm');
 const demoMode = inject<{ value: boolean } | null>('demoMode', null);
 
-const sortFieldOptions = [
-  { value: 'timestamp', label: '时间' },
-  { value: 'ip', label: 'IP' },
-  { value: 'url', label: 'URL' },
-  { value: 'status_code', label: '状态码' },
-  { value: 'bytes_sent', label: '流量' },
-];
-const sortOrderOptions = [
-  { value: 'desc', label: '降序' },
-  { value: 'asc', label: '升序' },
-];
+const { t, n, locale } = useI18n({ useScope: 'global' });
+const currentLocale = computed(() => normalizeLocale(locale.value));
+
+const sortFieldOptions = computed(() => [
+  { value: 'timestamp', label: t('logs.time') },
+  { value: 'ip', label: t('common.ip') },
+  { value: 'url', label: t('common.url') },
+  { value: 'status_code', label: t('common.status') },
+  { value: 'bytes_sent', label: t('common.traffic') },
+]);
+const sortOrderOptions = computed(() => [
+  { value: 'desc', label: t('logs.sortDesc') },
+  { value: 'asc', label: t('logs.sortAsc') },
+]);
 const pageSizeOptions = [50, 100, 200, 500].map((value) => ({ value, label: `${value}` }));
 
 const rawLogs = ref<Array<Record<string, any>>>([]);
@@ -251,18 +257,28 @@ const ipParsingProgressText = computed(() => {
   if (ipParsingProgress.value === null) {
     return '';
   }
-  return `${ipParsingProgress.value}%`;
+  return t('parsing.progress', { value: ipParsingProgress.value });
+});
+const ipParsingProgressLabel = computed(() => {
+  if (!ipParsingProgressText.value) {
+    return '';
+  }
+  return currentLocale.value === 'zh-CN'
+    ? `（${ipParsingProgressText.value}）`
+    : ` (${ipParsingProgressText.value})`;
 });
 
 const currentWebsiteLabel = computed(() => {
   const match = websites.value.find((site) => site.id === currentWebsiteId.value);
-  return match?.name || '当前站点';
+  return match?.name || t('common.currentWebsite');
 });
 
-const reparseButtonLabel = computed(() => (ipParsing.value ? '解析中...' : '重新解析日志'));
+const reparseButtonLabel = computed(() =>
+  (reparseLoading.value || ipParsing.value) ? t('logs.reparseLoading') : t('logs.reparse')
+);
 const isDemoMode = computed(() => demoMode?.value ?? false);
 const reparseDialogTitle = computed(() =>
-  reparseDialogMode.value === 'blocked' ? '演示模式' : '重新解析日志'
+  reparseDialogMode.value === 'blocked' ? t('demo.badge') : t('logs.reparseTitle')
 );
 
 function normalizeProgress(value: unknown): number | null {
@@ -285,35 +301,43 @@ function statusColor(statusCode: number | string) {
   return 'var(--success-color)';
 }
 
-const logs = computed(() =>
-  rawLogs.value.map((log) => {
-    const time = log.time || '-';
-    const ip = log.ip || '-';
-    const location = log.domestic_location || log.global_location || '-';
-    const request = `${log.method || '-'} ${log.url || '-'}`.trim();
-    const statusCode = log.status_code ?? '-';
-    const bytesSent = log.bytes_sent || 0;
-    const referer = log.referer || '-';
-    const browser = log.user_browser || '-';
-    const os = log.user_os || '-';
-    const device = log.user_device || '-';
+const logs = computed(() => {
+  const emptyLabel = t('common.none');
+  return rawLogs.value.map((log) => {
+    const time = log.time || emptyLabel;
+    const ip = log.ip || emptyLabel;
+    const locationRaw = log.domestic_location || log.global_location || '';
+    const location = formatLocationLabel(locationRaw, currentLocale.value, t) || emptyLabel;
+    const method = log.method || '';
+    const url = log.url || '';
+    const requestText = `${method} ${url}`.trim() || emptyLabel;
+    const statusCode = log.status_code ?? emptyLabel;
+    const bytesSent = Number(log.bytes_sent) || 0;
+    const refererRaw = log.referer ?? '';
+    const referer = formatRefererLabel(refererRaw, currentLocale.value, t) || emptyLabel;
+    const browserRaw = log.user_browser ?? '';
+    const browser = formatBrowserLabel(browserRaw, t) || emptyLabel;
+    const osRaw = log.user_os ?? '';
+    const os = formatOSLabel(osRaw, t) || emptyLabel;
+    const deviceRaw = log.user_device ?? '';
+    const device = formatDeviceLabel(deviceRaw, t) || emptyLabel;
     const pageview = Boolean(log.pageview_flag);
     return {
       time,
       ip,
       location,
-      request,
+      request: requestText,
       statusCode,
       trafficText: formatTraffic(bytesSent),
-      trafficTitle: `${bytesSent} 字节`,
+      trafficTitle: t('common.bytes', { value: n(bytesSent) }),
       referer,
       browser,
       os,
       device,
       pageview,
     }
-  })
-);
+  });
+});
 
 onMounted(() => {
   initPreferences();
@@ -432,7 +456,7 @@ async function confirmReparse() {
     if (error instanceof Error) {
       reparseError.value = error.message;
     } else {
-      reparseError.value = '重新解析失败，请稍后重试';
+      reparseError.value = t('logs.reparseError');
     }
   } finally {
     reparseLoading.value = false;

@@ -1,8 +1,8 @@
 <template>
   <header class="page-header">
     <div class="page-title">
-      <span class="title-chip">实时访问</span>
-      <p class="title-sub">分钟级监控 · 行为分布 · 快速识别异常</p>
+      <span class="title-chip">{{ t('realtime.title') }}</span>
+      <p class="title-sub">{{ t('realtime.subtitle') }}</p>
     </div>
     <div class="header-actions">
       <WebsiteSelect
@@ -10,7 +10,7 @@
         :websites="websites"
         :loading="websitesLoading"
         id="realtime-website-selector"
-        label="站点"
+        :label="t('common.website')"
       />
       <div class="realtime-range">
         <button
@@ -20,7 +20,7 @@
           :class="{ active: currentWindow === option }"
           @click="setWindow(option)"
         >
-          {{ option }}分钟
+          {{ t('realtime.minutes', { value: option }) }}
         </button>
       </div>
       <ThemeToggle />
@@ -42,22 +42,22 @@
         </div>
       </div>
       <div class="realtime-subtitle">{{ deviceSubtitle }}</div>
-      <div class="realtime-device-cards">
+        <div class="realtime-device-cards">
         <div class="realtime-device-card">
           <div class="realtime-device-icon"><i class="ri-computer-line"></i></div>
-          <div class="realtime-device-label">PC端</div>
+          <div class="realtime-device-label">{{ t('realtime.pc') }}</div>
           <div class="realtime-device-count">{{ formatCount(deviceStats.pc.count) }}</div>
           <div class="realtime-device-rate">{{ formatPercent(deviceStats.pc.percent) }}</div>
         </div>
         <div class="realtime-device-card">
           <div class="realtime-device-icon"><i class="ri-smartphone-line"></i></div>
-          <div class="realtime-device-label">移动端</div>
+          <div class="realtime-device-label">{{ t('realtime.mobile') }}</div>
           <div class="realtime-device-count">{{ formatCount(deviceStats.mobile.count) }}</div>
           <div class="realtime-device-rate">{{ formatPercent(deviceStats.mobile.percent) }}</div>
         </div>
         <div class="realtime-device-card">
           <div class="realtime-device-icon"><i class="ri-shield-line"></i></div>
-          <div class="realtime-device-label">其他</div>
+          <div class="realtime-device-label">{{ t('realtime.other') }}</div>
           <div class="realtime-device-count">{{ formatCount(deviceStats.other.count) }}</div>
           <div class="realtime-device-rate">{{ formatPercent(deviceStats.other.percent) }}</div>
         </div>
@@ -68,7 +68,7 @@
       <div class="realtime-card-header">
         <div class="realtime-card-title">
           <span class="section-icon blue"><i class="ri-compass-3-line"></i></span>
-          来路
+          {{ t('realtime.referer') }}
         </div>
       </div>
       <div class="realtime-top">
@@ -86,13 +86,13 @@
         <table class="ranking-table realtime-table">
           <thead>
             <tr>
-              <th>来路</th>
-              <th class="realtime-count-col">访客数</th>
+              <th>{{ t('realtime.referer') }}</th>
+              <th class="realtime-count-col">{{ t('realtime.topVisitors') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!refererItems.length">
-              <td colspan="2">暂无数据</td>
+              <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in refererItems" :key="item.name">
               <td>{{ item.name }}</td>
@@ -107,7 +107,7 @@
       <div class="realtime-card-header">
         <div class="realtime-card-title">
           <span class="section-icon orange"><i class="ri-pages-line"></i></span>
-          受访页面
+          {{ t('realtime.pages') }}
         </div>
       </div>
       <div class="realtime-top">
@@ -125,13 +125,13 @@
         <table class="ranking-table realtime-table">
           <thead>
             <tr>
-              <th>受访页面标题</th>
-              <th class="realtime-count-col">查看次数</th>
+              <th>{{ t('realtime.pages') }}</th>
+              <th class="realtime-count-col">{{ t('realtime.viewCount') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!pageItems.length">
-              <td colspan="2">暂无数据</td>
+              <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in pageItems" :key="item.name">
               <td>{{ item.name }}</td>
@@ -146,7 +146,7 @@
       <div class="realtime-card-header">
         <div class="realtime-card-title">
           <span class="section-icon orange"><i class="ri-login-circle-line"></i></span>
-          入口页面
+          {{ t('realtime.entryPages') }}
         </div>
       </div>
       <div class="realtime-top">
@@ -164,13 +164,13 @@
         <table class="ranking-table realtime-table">
           <thead>
             <tr>
-              <th>入口页面</th>
-              <th class="realtime-count-col">入口次数</th>
+              <th>{{ t('realtime.entryPages') }}</th>
+              <th class="realtime-count-col">{{ t('realtime.entryCount') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!entryItems.length">
-              <td colspan="2">暂无数据</td>
+              <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in entryItems" :key="item.name">
               <td>{{ item.name }}</td>
@@ -185,7 +185,7 @@
       <div class="realtime-card-header">
         <div class="realtime-card-title">
           <span class="section-icon green"><i class="ri-global-line"></i></span>
-          浏览器
+          {{ t('realtime.browser') }}
         </div>
       </div>
       <div class="realtime-top">
@@ -203,13 +203,13 @@
         <table class="ranking-table realtime-table">
           <thead>
             <tr>
-              <th>浏览器</th>
-              <th class="realtime-count-col">访客数</th>
+              <th>{{ t('realtime.browser') }}</th>
+              <th class="realtime-count-col">{{ t('realtime.topVisitors') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!browserItems.length">
-              <td colspan="2">暂无数据</td>
+              <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in browserItems" :key="item.name">
               <td>{{ item.name }}</td>
@@ -224,7 +224,7 @@
       <div class="realtime-card-header">
         <div class="realtime-card-title">
           <span class="section-icon blue"><i class="ri-map-pin-2-line"></i></span>
-          城市/地区
+          {{ t('realtime.location') }}
         </div>
       </div>
       <div class="realtime-top">
@@ -242,13 +242,13 @@
         <table class="ranking-table realtime-table">
           <thead>
             <tr>
-              <th>城市/地区</th>
-              <th class="realtime-count-col">访客数</th>
+              <th>{{ t('realtime.location') }}</th>
+              <th class="realtime-count-col">{{ t('realtime.topVisitors') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!cityItems.length">
-              <td colspan="2">暂无数据</td>
+              <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in cityItems" :key="item.name">
               <td>{{ item.name }}</td>
@@ -265,8 +265,11 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { fetchRealtimeStats, fetchWebsites } from '@/api';
 import type { RealtimeSeriesItem, RealtimeStats, WebsiteInfo } from '@/api/types';
+import { formatBrowserLabel, formatLocationLabel, formatRefererLabel, normalizeDeviceCategory } from '@/i18n/mappings';
+import { normalizeLocale } from '@/i18n';
 import { getUserPreference, saveUserPreference } from '@/utils';
 import ParsingOverlay from '@/components/ParsingOverlay.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
@@ -289,8 +292,11 @@ const locations = ref<RealtimeSeriesItem[]>([]);
 
 let refreshTimer: number | null = null;
 
-const activeTitle = computed(() => `最近${currentWindow.value}分钟活跃访客数`);
-const deviceSubtitle = computed(() => `最近${currentWindow.value}分钟的终端设备`);
+const { t, n, locale } = useI18n({ useScope: 'global' });
+const currentLocale = computed(() => normalizeLocale(locale.value));
+
+const activeTitle = computed(() => t('realtime.activeTitle', { value: currentWindow.value }));
+const deviceSubtitle = computed(() => t('realtime.deviceSubtitle', { value: currentWindow.value }));
 
 const activeBars = computed(() => {
   const values = Array.isArray(activeSeries.value) && activeSeries.value.length
@@ -308,10 +314,17 @@ const activeBars = computed(() => {
 
 const deviceStats = computed(() => {
   const breakdown = deviceBreakdown.value || [];
-  const pc = breakdown.find((item) => item.name === 'PC端') || { count: 0, percent: 0 };
-  const mobile = breakdown.find((item) => item.name === '移动端') || { count: 0, percent: 0 };
-  const other = breakdown.find((item) => item.name === '其他') || { count: 0, percent: 0 };
-  return { pc, mobile, other };
+  const totals = { desktop: 0, mobile: 0, other: 0 };
+  breakdown.forEach((item) => {
+    const category = normalizeDeviceCategory(item.name);
+    totals[category] += item.count || 0;
+  });
+  const total = totals.desktop + totals.mobile + totals.other;
+  return {
+    pc: { count: totals.desktop, percent: total ? totals.desktop / total : 0 },
+    mobile: { count: totals.mobile, percent: total ? totals.mobile / total : 0 },
+    other: { count: totals.other, percent: total ? totals.other / total : 0 },
+  };
 });
 
 const topReferer = computed(() => getTopItem(referers.value));
@@ -320,11 +333,26 @@ const topEntry = computed(() => getTopItem(entryPages.value));
 const topBrowser = computed(() => getTopItem(browsers.value));
 const topCity = computed(() => getTopItem(locations.value));
 
-const refererItems = computed(() => referers.value || []);
+const refererItems = computed(() =>
+  (referers.value || []).map((item) => ({
+    ...item,
+    name: formatRefererLabel(item.name, currentLocale.value, t),
+  }))
+);
 const pageItems = computed(() => pages.value || []);
 const entryItems = computed(() => entryPages.value || []);
-const browserItems = computed(() => browsers.value || []);
-const cityItems = computed(() => locations.value || []);
+const browserItems = computed(() =>
+  (browsers.value || []).map((item) => ({
+    ...item,
+    name: formatBrowserLabel(item.name, t),
+  }))
+);
+const cityItems = computed(() =>
+  (locations.value || []).map((item) => ({
+    ...item,
+    name: formatLocationLabel(item.name, currentLocale.value, t),
+  }))
+);
 
 onMounted(() => {
   initWindowFromPreference();
@@ -447,9 +475,9 @@ function getTopItem(items: RealtimeSeriesItem[] = []) {
   return items[0];
 }
 
-function formatCount(value: number) { return Number(value || 0).toLocaleString('zh-CN'); }
+function formatCount(value: number) { return n(Number(value || 0)); }
 
-function formatPercent(value: number) { return `${(Number(value || 0) * 100).toFixed(2)}%`; }
+function formatPercent(value: number) { return n(Number(value || 0), 'percent'); }
 </script>
 
 <style scoped lang="scss">

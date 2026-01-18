@@ -2,20 +2,20 @@
   <div class="overview-page">
     <header class="page-header">
       <div class="page-title">
-        <span class="title-chip">访问概况</span>
-        <p class="title-sub">实时洞察 · 趋势分析 · 关键指标</p>
+        <span class="title-chip">{{ t('overview.title') }}</span>
+        <p class="title-sub">{{ t('overview.subtitle') }}</p>
       </div>
       <div class="header-actions">
-        <div class="inline-metric">流量 <span>{{ trafficText }}</span></div>
+        <div class="inline-metric">{{ t('common.traffic') }} <span>{{ trafficText }}</span></div>
         <WebsiteSelect
           v-model="currentWebsiteId"
           :websites="websites"
           :loading="websitesLoading"
           id="website-selector"
-          label="站点"
+          :label="t('common.website')"
         />
         <div class="select-group sr-only">
-          <label class="select-label" for="date-range">日期</label>
+          <label class="select-label" for="date-range">{{ t('common.date') }}</label>
           <Dropdown
             inputId="date-range"
             v-model="dateRange"
@@ -32,26 +32,26 @@
     <section class="overview-grid">
       <div class="card live-card" data-anim>
         <div class="live-card-header">
-          <span class="live-chip">最近15分钟活跃访客数</span>
+          <span class="live-chip">{{ t('overview.liveVisitors') }}</span>
         </div>
         <div class="live-card-body">
           <div class="live-value">{{ liveVisitorText }}</div>
-          <div class="live-sub">活动保持中</div>
-          <a class="ghost-link" href="/realtime?window=5">查看实时</a>
+          <div class="live-sub">{{ t('overview.liveStatus') }}</div>
+          <a class="ghost-link" href="/realtime?window=5">{{ t('overview.viewRealtime') }}</a>
         </div>
       </div>
       <div class="card metrics-card" data-anim>
         <div class="metrics-head">
           <div>
-            <div class="metrics-title">核心指标</div>
-            <div class="metrics-sub">今日 / 昨日 / 预计今日 / 昨日此时</div>
+            <div class="metrics-title">{{ t('overview.metricsTitle') }}</div>
+            <div class="metrics-sub">{{ t('overview.metricsSub') }}</div>
           </div>
         </div>
         <div class="metrics-grid">
           <div class="metric-tile status-tile">
             <div class="metric-header">
-              <div class="metric-label">HTTP 状态码命中</div>
-              <button class="link-button metric-detail" @click="openDetail('metric-status')">详情</button>
+              <div class="metric-label">{{ t('overview.statusHits') }}</div>
+              <button class="link-button metric-detail" @click="openDetail('metric-status')">{{ t('overview.detail') }}</button>
             </div>
             <div class="metric-value">{{ statusMetrics.total }}</div>
             <div class="metric-sub">
@@ -68,8 +68,8 @@
           </div>
           <div class="metric-tile" data-metric="pv">
             <div class="metric-header">
-              <div class="metric-label">浏览量(PV)</div>
-              <button class="link-button metric-detail" @click="openDetail('metric-pv')">详情</button>
+              <div class="metric-label">{{ t('overview.pv') }}</div>
+              <button class="link-button metric-detail" @click="openDetail('metric-pv')">{{ t('overview.detail') }}</button>
             </div>
             <div class="metric-value">{{ metricTiles.pv.current }}</div>
             <div class="metric-sub"><span class="metric-sub-label">{{ metricLabels.prev }}</span><span class="metric-sub-value">{{ metricTiles.pv.prev }}</span></div>
@@ -82,8 +82,8 @@
           </div>
           <div class="metric-tile" data-metric="uv">
             <div class="metric-header">
-              <div class="metric-label">访客数(UV)</div>
-              <button class="link-button metric-detail" @click="openDetail('metric-uv')">详情</button>
+              <div class="metric-label">{{ t('overview.uv') }}</div>
+              <button class="link-button metric-detail" @click="openDetail('metric-uv')">{{ t('overview.detail') }}</button>
             </div>
             <div class="metric-value">{{ metricTiles.uv.current }}</div>
             <div class="metric-sub"><span class="metric-sub-label">{{ metricLabels.prev }}</span><span class="metric-sub-value">{{ metricTiles.uv.prev }}</span></div>
@@ -96,8 +96,8 @@
           </div>
           <div class="metric-tile" data-metric="session">
             <div class="metric-header">
-              <div class="metric-label">会话数</div>
-              <button class="link-button metric-detail" @click="openDetail('metric-session')">详情</button>
+              <div class="metric-label">{{ t('overview.session') }}</div>
+              <button class="link-button metric-detail" @click="openDetail('metric-session')">{{ t('overview.detail') }}</button>
             </div>
             <div class="metric-value">{{ metricTiles.session.current }}</div>
             <div class="metric-sub"><span class="metric-sub-label">{{ metricLabels.prev }}</span><span class="metric-sub-value">{{ metricTiles.session.prev }}</span></div>
@@ -129,7 +129,7 @@
         <div class="card-header">
           <div class="card-title">
             <span class="card-icon blue"><i class="ri-line-chart-line"></i></span>
-            趋势分析
+            {{ t('overview.trend') }}
           </div>
           <div class="card-actions">
             <div class="view-toggle">
@@ -138,7 +138,7 @@
                 :class="{ active: chartView === 'hourly' }"
                 @click="setChartView('hourly')"
               >
-                按时
+                {{ t('overview.byHour') }}
               </button>
               <button
                 class="data-view-toggle-btn"
@@ -146,7 +146,7 @@
                 :disabled="dailyViewDisabled"
                 @click="setChartView('daily')"
               >
-                按天
+                {{ t('overview.byDay') }}
               </button>
             </div>
           </div>
@@ -160,7 +160,7 @@
         <div class="card-header">
           <div class="card-title">
             <span class="card-icon green"><i class="ri-user-heart-line"></i></span>
-            新老访客
+            {{ t('overview.newOld') }}
           </div>
         </div>
         <div class="chart-mini">
@@ -168,12 +168,12 @@
         </div>
         <div class="mini-cards">
           <div class="mini-card blue">
-            <div class="mini-label">新访客</div>
+            <div class="mini-label">{{ t('overview.newVisitor') }}</div>
             <div class="mini-value">{{ newOldStats.newCountText }}</div>
             <div class="mini-percent">{{ newOldStats.newRate }}</div>
           </div>
           <div class="mini-card orange">
-            <div class="mini-label">老访客</div>
+            <div class="mini-label">{{ t('overview.oldVisitor') }}</div>
             <div class="mini-value">{{ newOldStats.oldCountText }}</div>
             <div class="mini-percent">{{ newOldStats.oldRate }}</div>
           </div>
@@ -186,24 +186,24 @@
         <div class="card-header">
           <div class="card-title">
             <span class="card-icon blue"><i class="ri-compass-3-line"></i></span>
-            来路
+            {{ t('overview.referer') }}
           </div>
-          <button class="link-button" @click="openDetail('referer')">详情</button>
+          <button class="link-button" @click="openDetail('referer')">{{ t('overview.detail') }}</button>
         </div>
         <div class="table-wrapper">
           <table class="ranking-table">
             <thead>
               <tr>
-                <th class="domain-col">来路网站</th>
-                <th class="visitor-col">访客数</th>
+                <th class="domain-col">{{ t('overview.refererSite') }}</th>
+                <th class="visitor-col">{{ t('common.visitors') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="overviewLoading">
-                <td colspan="2">加载中...</td>
+                <td colspan="2">{{ t('common.loading') }}</td>
               </tr>
               <tr v-else-if="refererRows.length === 0">
-                <td colspan="2">暂无数据</td>
+                <td colspan="2">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in refererRows" :key="row.label">
                 <td class="item-path" :title="row.label">{{ row.label }}</td>
@@ -225,24 +225,24 @@
         <div class="card-header">
           <div class="card-title">
             <span class="card-icon orange"><i class="ri-pages-line"></i></span>
-            受访页
+            {{ t('overview.topPage') }}
           </div>
-          <button class="link-button" @click="openDetail('url')">详情</button>
+          <button class="link-button" @click="openDetail('url')">{{ t('overview.detail') }}</button>
         </div>
         <div class="table-wrapper">
           <table class="ranking-table">
             <thead>
               <tr>
-                <th class="url-col">页面地址</th>
-                <th class="pv-col">查看次数</th>
+                <th class="url-col">{{ t('common.url') }}</th>
+                <th class="pv-col">{{ t('common.viewCount') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="overviewLoading">
-                <td colspan="2">加载中...</td>
+                <td colspan="2">{{ t('common.loading') }}</td>
               </tr>
               <tr v-else-if="urlRows.length === 0">
-                <td colspan="2">暂无数据</td>
+                <td colspan="2">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in urlRows" :key="row.label">
                 <td class="item-path" :title="row.label">{{ row.label }}</td>
@@ -264,24 +264,24 @@
         <div class="card-header">
           <div class="card-title">
             <span class="card-icon green"><i class="ri-door-open-line"></i></span>
-            入口页
+            {{ t('overview.entryPage') }}
           </div>
-          <button class="link-button" @click="openDetail('entry')">详情</button>
+          <button class="link-button" @click="openDetail('entry')">{{ t('overview.detail') }}</button>
         </div>
         <div class="table-wrapper">
           <table class="ranking-table">
             <thead>
               <tr>
-                <th class="url-col">页面地址</th>
-                <th class="pv-col">入口次数</th>
+                <th class="url-col">{{ t('common.url') }}</th>
+                <th class="pv-col">{{ t('common.entryCount') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="overviewLoading">
-                <td colspan="2">加载中...</td>
+                <td colspan="2">{{ t('common.loading') }}</td>
               </tr>
               <tr v-else-if="entryRows.length === 0">
-                <td colspan="2">暂无数据</td>
+                <td colspan="2">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in entryRows" :key="row.label">
                 <td class="item-path" :title="row.label">{{ row.label }}</td>
@@ -306,7 +306,7 @@
         <div class="card-header">
           <div class="card-title">
             <span class="card-icon blue"><i class="ri-map-pin-2-line"></i></span>
-            地域
+            {{ t('overview.region') }}
           </div>
           <div class="card-actions">
             <div class="view-toggle">
@@ -315,17 +315,17 @@
                 :class="{ active: mapView === 'china' }"
                 @click="setMapView('china')"
               >
-                国内
+                {{ t('overview.domestic') }}
               </button>
               <button
                 class="data-map-toggle-btn"
                 :class="{ active: mapView === 'world' }"
                 @click="setMapView('world')"
               >
-                全球
+                {{ t('overview.global') }}
               </button>
             </div>
-            <button class="link-button" @click="openDetail('geo')">详情</button>
+            <button class="link-button" @click="openDetail('geo')">{{ t('overview.detail') }}</button>
           </div>
         </div>
         <div class="geo-content">
@@ -336,13 +336,13 @@
             <table class="ranking-table">
               <thead>
                 <tr>
-                  <th class="region-col">省份</th>
-                  <th class="visitor-col">访客数</th>
+                  <th class="region-col">{{ t('common.province') }}</th>
+                  <th class="visitor-col">{{ t('common.visitors') }}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="geoRows.length === 0">
-                  <td colspan="2">暂无数据</td>
+                  <td colspan="2">{{ t('common.noData') }}</td>
                 </tr>
                 <tr v-else v-for="row in geoRows" :key="row.label">
                   <td class="item-path" :title="row.label">{{ row.label }}</td>
@@ -365,26 +365,26 @@
         <div class="card-header">
           <div class="card-title">
             <span class="card-icon blue"><i class="ri-device-line"></i></span>
-            终端设备
+            {{ t('overview.deviceAnalysis') }}
           </div>
-          <button class="link-button" @click="openDetail('device')">详情</button>
+          <button class="link-button" @click="openDetail('device')">{{ t('overview.detail') }}</button>
         </div>
         <div class="device-chart">
           <canvas ref="deviceChartRef"></canvas>
         </div>
         <div class="device-cards">
           <div class="device-mini blue">
-            <div class="device-label">电脑端</div>
+            <div class="device-label">{{ t('overview.deviceDesktop') }}</div>
             <div class="device-value">{{ deviceTotals.desktopText }}</div>
             <div class="device-percent">{{ deviceTotals.desktopRate }}</div>
           </div>
           <div class="device-mini orange">
-            <div class="device-label">移动端</div>
+            <div class="device-label">{{ t('overview.deviceMobile') }}</div>
             <div class="device-value">{{ deviceTotals.mobileText }}</div>
             <div class="device-percent">{{ deviceTotals.mobileRate }}</div>
           </div>
           <div class="device-mini green">
-            <div class="device-label">其他</div>
+            <div class="device-label">{{ t('overview.deviceOther') }}</div>
             <div class="device-value">{{ deviceTotals.otherText }}</div>
             <div class="device-percent">{{ deviceTotals.otherRate }}</div>
           </div>
@@ -410,7 +410,7 @@
             <div class="detail-title" id="detail-title">{{ detailTitle }}</div>
             <div class="detail-sub" id="detail-subtitle">{{ detailSubtitle }}</div>
           </div>
-          <button class="ghost-button detail-close" type="button" @click="closeDetail">关闭</button>
+          <button class="ghost-button detail-close" type="button" @click="closeDetail">{{ t('common.close') }}</button>
         </div>
         <div class="detail-body">
           <div class="detail-filters" v-if="detailMode === 'logs'" aria-hidden="false">
@@ -488,7 +488,7 @@
                     showButtonBar
                     :showClear="true"
                   />
-                  <span class="detail-filter-divider">{{ item.divider || '至' }}</span>
+                  <span class="detail-filter-divider">{{ item.divider || t('common.to') }}</span>
                   <DatePicker
                     v-model="detailFilterState[detailLogScope][item.endKey]"
                     class="detail-filter-datepicker detail-filter-datetime"
@@ -501,13 +501,13 @@
                   />
                 </div>
                 <Button v-else-if="typeof item === 'object' && item.type === 'apply'" severity="primary" @click="applyDetailFilters">
-                  {{ item.label || '筛选' }}
+                  {{ item.label || t('common.apply') }}
                 </Button>
               </template>
             </div>
           </div>
           <div class="detail-ip-notice" v-if="detailMode === 'logs' && detailIpParsing">
-            日志IP解析中<span v-if="detailIpParsingProgressText">（已完成 {{ detailIpParsingProgressText }}）</span>，请稍后刷新
+            {{ t('logs.ipParsing', { progress: detailIpParsingProgressLabel }) }}
           </div>
           <div class="detail-list">
             <div class="table-wrapper">
@@ -521,14 +521,14 @@
                 </thead>
                 <tbody>
                   <tr v-if="showDetailLoading">
-                    <td :colspan="detailColumns.length">加载中...</td>
+                    <td :colspan="detailColumns.length">{{ t('common.loading') }}</td>
                   </tr>
                   <tr v-else-if="detailError">
-                    <td :colspan="detailColumns.length">加载失败</td>
+                    <td :colspan="detailColumns.length">{{ t('common.requestFailed') }}</td>
                   </tr>
                   <template v-else-if="detailMode !== 'logs'">
                     <tr v-if="detailRankingRows.length === 0">
-                      <td :colspan="detailColumns.length">暂无数据</td>
+                      <td :colspan="detailColumns.length">{{ t('common.noData') }}</td>
                     </tr>
                     <tr v-else v-for="row in detailRankingRows" :key="row.label">
                       <td class="item-path" :title="row.label">{{ row.label }}</td>
@@ -545,7 +545,7 @@
                   </template>
                   <template v-else>
                     <tr v-if="detailLogRows.length === 0">
-                      <td :colspan="detailColumns.length">暂无数据</td>
+                      <td :colspan="detailColumns.length">{{ t('common.noData') }}</td>
                     </tr>
                     <tr v-else v-for="(row, rowIndex) in detailLogRows" :key="rowIndex">
                       <td
@@ -581,6 +581,7 @@
 
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import * as echarts from 'echarts';
 import chinaMap from '@/assets/maps/china.json';
 import worldMap from '@/assets/maps/world.json';
@@ -603,6 +604,18 @@ import { Chart } from '@/utils/chartjs';
 import ParsingOverlay from '@/components/ParsingOverlay.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
 import WebsiteSelect from '@/components/WebsiteSelect.vue';
+import {
+  chinaProvinceAlias,
+  chinaProvinceMap,
+  formatBrowserLabel,
+  formatDeviceLabel,
+  formatLocationLabel,
+  formatOSLabel,
+  formatRefererLabel,
+  normalizeChinaProvinceName,
+  normalizeDeviceCategory,
+} from '@/i18n/mappings';
+import { normalizeLocale } from '@/i18n';
 
 type ThemeContext = {
   isDark: { value: boolean };
@@ -613,6 +626,8 @@ echarts.registerMap('world', worldMap as any);
 
 const theme = inject<ThemeContext>('theme', null);
 const setLiveVisitorCount = inject<((value: number | null) => void) | null>('setLiveVisitorCount', null);
+const { t, n, locale } = useI18n({ useScope: 'global' });
+const currentLocale = computed(() => normalizeLocale(locale.value));
 
 const websites = ref<WebsiteInfo[]>([]);
 const websitesLoading = ref(true);
@@ -648,27 +663,27 @@ let mapRequestId = 0;
 const DETAIL_LIMIT = 50;
 const DETAIL_LOG_PAGE_SIZE = 30;
 
-const dateRangeOptions = [
-  { value: 'today', label: '今天' },
-  { value: 'yesterday', label: '昨天' },
-  { value: 'week', label: '本周' },
-  { value: 'last7days', label: '最近7天' },
-  { value: 'month', label: '本月' },
-  { value: 'last30days', label: '最近30天' },
-];
+const dateRangeOptions = computed(() => [
+  { value: 'today', label: t('common.today') },
+  { value: 'yesterday', label: t('common.yesterday') },
+  { value: 'week', label: t('common.week') },
+  { value: 'last7days', label: t('common.last7Days') },
+  { value: 'month', label: t('overview.month') },
+  { value: 'last30days', label: t('common.last30Days') },
+]);
 
-const rangeTabs = [
-  { value: 'today', label: '今日' },
-  { value: 'yesterday', label: '昨日' },
-  { value: 'last7days', label: '最近7日' },
-  { value: 'last30days', label: '最近30日' },
-];
+const rangeTabs = computed(() => [
+  { value: 'today', label: t('overview.todayShort') },
+  { value: 'yesterday', label: t('overview.yesterdayShort') },
+  { value: 'last7days', label: t('overview.last7DaysShort') },
+  { value: 'last30days', label: t('overview.last30DaysShort') },
+]);
 
 const trafficText = computed(() => formatTraffic(overall.value?.traffic ?? 0));
 
 const liveVisitorText = computed(() => {
   const value = overall.value?.activeVisitorCount;
-  return Number.isFinite(value) ? Number(value).toLocaleString('zh-CN') : '--';
+  return Number.isFinite(value) ? n(Number(value)) : t('common.none');
 });
 
 const metricLabels = computed(() => getMetricCompareLabels(dateRange.value));
@@ -679,14 +694,14 @@ const statusMetrics = computed(() => {
   const prevLabel = metricLabels.value.prev;
   if (!hits) {
     return {
-      total: '--',
-      s2xx: '--',
-      s3xx: '--',
-      s4xx: '--',
-      s5xx: '--',
+      total: t('common.none'),
+      s2xx: t('common.none'),
+      s3xx: t('common.none'),
+      s4xx: t('common.none'),
+      s5xx: t('common.none'),
       prevLabel,
-      prevTotal: '--',
-      deltaText: '--',
+      prevTotal: t('common.none'),
+      deltaText: t('common.none'),
       deltaClass: '',
     }
   }
@@ -714,7 +729,7 @@ const statusMetrics = computed(() => {
     s4xx: formatCount(s4xx),
     s5xx: formatCount(s5xx),
     prevLabel,
-    prevTotal: prevTotal === null ? '--' : formatCount(prevTotal),
+    prevTotal: prevTotal === null ? t('common.none') : formatCount(prevTotal),
     deltaText: delta.text,
     deltaClass: delta.className,
   }
@@ -757,9 +772,10 @@ const deviceTotals = computed(() => {
   if (stats?.key && stats.uv) {
     stats.key.forEach((label, index) => {
       const value = stats.uv[index] || 0;
-      if (String(label).includes('桌面')) {
+      const category = normalizeDeviceCategory(String(label));
+      if (category === 'desktop') {
         totals.desktop += value;
-      } else if (String(label).includes('手机') || String(label).includes('移动') || String(label).includes('平板')) {
+      } else if (category === 'mobile') {
         totals.mobile += value;
       } else {
         totals.other += value;
@@ -785,7 +801,9 @@ const deviceTotals = computed(() => {
   }
 });
 
-const refererRows = computed(() => buildRankingRows(refererStats.value));
+const refererRows = computed(() =>
+  buildRankingRows(refererStats.value, false, (label) => formatRefererLabel(label, currentLocale.value, t))
+);
 const urlRows = computed(() => buildRankingRows(urlStats.value, true));
 const entryRows = computed(() => buildRankingRows(overall.value?.entryPages, false));
 const geoRows = computed(() => buildGeoRows(geoData.value));
@@ -805,7 +823,15 @@ const detailIpParsingProgressText = computed(() => {
   if (detailIpParsingProgress.value === null) {
     return '';
   }
-  return `${detailIpParsingProgress.value}%`;
+  return t('parsing.progress', { value: detailIpParsingProgress.value });
+});
+const detailIpParsingProgressLabel = computed(() => {
+  if (!detailIpParsingProgressText.value) {
+    return '';
+  }
+  return currentLocale.value === 'zh-CN'
+    ? `（${detailIpParsingProgressText.value}）`
+    : ` (${detailIpParsingProgressText.value})`;
 });
 const detailLoadState = ref<'ready' | 'loading' | 'done' | 'error'>('ready');
 const detailHasMore = ref(false);
@@ -819,7 +845,7 @@ let latestOverallKey = '';
 
 const detailMode = computed(() => (detailConfig.value?.mode === 'logs' ? 'logs' : 'table'));
 const detailLayout = computed(() => detailConfig.value?.layout || 'panel');
-const detailTitle = computed(() => detailConfig.value?.title || '详情');
+const detailTitle = computed(() => detailConfig.value?.title || t('overview.detail'));
 const detailSubtitle = computed(() => buildDetailSubtitle());
 const detailColumns = computed(() => buildDetailColumns(detailConfig.value));
 const showDetailLoading = computed(
@@ -828,13 +854,13 @@ const showDetailLoading = computed(
 const detailLoadMoreText = computed(() => {
   switch (detailLoadState.value) {
     case 'loading':
-      return '加载中...';
+      return t('common.loading');
     case 'done':
-      return '没有更多了';
+      return t('overview.loadMoreDone');
     case 'error':
-      return '重试加载';
+      return t('overview.loadMoreRetry');
     default:
-      return '加载更多';
+      return t('overview.loadMore');
   }
 });
 const detailLoadMoreDisabled = computed(() => detailLoadState.value === 'loading' || detailLoadState.value === 'done');
@@ -868,13 +894,13 @@ const DETAIL_FILTER_DEFAULTS = {
   },
 }
 
-const detailFilterFields = {
+const detailFilterFields = computed(() => ({
   status: {
     statusClass: {
       type: 'select',
-      label: '状态码',
+      label: t('overview.statusCode'),
       options: [
-        { value: 'all', label: '全部' },
+        { value: 'all', label: t('common.all') },
         { value: '2xx', label: '2xx' },
         { value: '3xx', label: '3xx' },
         { value: '4xx', label: '4xx' },
@@ -883,27 +909,27 @@ const detailFilterFields = {
     },
     statusCode: {
       type: 'input',
-      label: '精确',
+      label: t('overview.exact'),
       inputType: 'number',
       min: 100,
       max: 599,
-      placeholder: '如 404',
+      placeholder: t('overview.statusCodePlaceholder'),
     },
     excludeInternal: {
       type: 'checkbox',
-      label: '过滤内网',
+      label: t('overview.excludeInternal'),
     },
     ipFilter: {
       type: 'input',
-      label: 'IP',
+      label: t('common.ip'),
       inputType: 'text',
-      placeholder: '如 192.168.1.1',
+      placeholder: t('overview.ipPlaceholder'),
     },
   },
   pv: {
     timeStart: {
       type: 'input',
-      label: '访问时间',
+      label: t('overview.visitTime'),
       inputType: 'datetime-local',
     },
     timeEnd: {
@@ -912,40 +938,40 @@ const detailFilterFields = {
     },
     locationFilter: {
       type: 'input',
-      label: 'IP归属地',
+      label: t('overview.ipLocation'),
       inputType: 'text',
-      placeholder: '如 北京',
+      placeholder: t('overview.locationPlaceholder'),
     },
     urlFilter: {
       type: 'input',
-      label: '访问链接',
+      label: t('overview.visitLink'),
       inputType: 'text',
-      placeholder: '如 /post/23',
+      placeholder: t('overview.urlPlaceholder'),
     },
     excludeInternal: {
       type: 'checkbox',
-      label: '过滤内网',
+      label: t('overview.excludeInternal'),
     },
     ipFilter: {
       type: 'input',
-      label: 'IP',
+      label: t('common.ip'),
       inputType: 'text',
-      placeholder: '如 192.168.1.1',
+      placeholder: t('overview.ipPlaceholder'),
     },
   },
   uv: {
     isNew: {
       type: 'select',
-      label: '是否新访客',
+      label: t('overview.isNewVisitor'),
       options: [
-        { value: 'all', label: '全部' },
-        { value: 'new', label: '新访客' },
-        { value: 'returning', label: '老访客' },
+        { value: 'all', label: t('common.all') },
+        { value: 'new', label: t('overview.newVisitor') },
+        { value: 'returning', label: t('overview.oldVisitor') },
       ],
     },
     timeStart: {
       type: 'input',
-      label: '访问时间',
+      label: t('overview.visitTime'),
       inputType: 'datetime-local',
     },
     timeEnd: {
@@ -954,37 +980,37 @@ const detailFilterFields = {
     },
     ipFilter: {
       type: 'input',
-      label: 'IP',
+      label: t('common.ip'),
       inputType: 'text',
-      placeholder: '如 192.168.1.1',
+      placeholder: t('overview.ipPlaceholder'),
     },
   },
   session: {
     ipFilter: {
       type: 'input',
-      label: 'IP',
+      label: t('common.ip'),
       inputType: 'text',
-      placeholder: '如 192.168.1.1',
+      placeholder: t('overview.ipPlaceholder'),
     },
     deviceFilter: {
       type: 'select',
-      label: '设备类型',
-      options: [{ value: 'all', label: '全部' }],
+      label: t('overview.deviceType'),
+      options: [{ value: 'all', label: t('common.all') }],
     },
     browserFilter: {
       type: 'select',
-      label: '浏览器',
-      options: [{ value: 'all', label: '全部' }],
+      label: t('common.browser'),
+      options: [{ value: 'all', label: t('common.all') }],
     },
     osFilter: {
       type: 'select',
-      label: '操作系统',
-      options: [{ value: 'all', label: '全部' }],
+      label: t('common.os'),
+      options: [{ value: 'all', label: t('common.all') }],
     },
   },
-}
+}));
 
-const detailFilterLayout = computed(() => DETAIL_FILTER_LAYOUTS[detailLogScope.value] || []);
+const detailFilterLayout = computed(() => DETAIL_FILTER_LAYOUTS.value[detailLogScope.value] || []);
 const detailFilterState = reactive({
   status: { ...DETAIL_FILTER_DEFAULTS.status },
   pv: { ...DETAIL_FILTER_DEFAULTS.pv },
@@ -993,28 +1019,36 @@ const detailFilterState = reactive({
 });
 
 const sessionFilterOptions = reactive({
-  deviceFilter: [{ value: 'all', label: '全部' }],
-  browserFilter: [{ value: 'all', label: '全部' }],
-  osFilter: [{ value: 'all', label: '全部' }],
+  deviceFilter: [] as Array<{ value: string; label: string }>,
+  browserFilter: [] as Array<{ value: string; label: string }>,
+  osFilter: [] as Array<{ value: string; label: string }>,
 });
 
-const DETAIL_FILTER_LAYOUTS = {
+function resetSessionFilterOptions() {
+  sessionFilterOptions.deviceFilter = [{ value: 'all', label: t('common.all') }];
+  sessionFilterOptions.browserFilter = [{ value: 'all', label: t('common.all') }];
+  sessionFilterOptions.osFilter = [{ value: 'all', label: t('common.all') }];
+}
+
+resetSessionFilterOptions();
+
+const DETAIL_FILTER_LAYOUTS = computed(() => ({
   status: [
     {
       className: 'detail-filter-section',
-      items: ['statusClass', 'statusCode', 'excludeInternal', 'ipFilter', { type: 'apply', label: '筛选' }],
+      items: ['statusClass', 'statusCode', 'excludeInternal', 'ipFilter', { type: 'apply', label: t('common.apply') }],
     },
   ],
   pv: [
     {
       className: 'detail-filter-section detail-filter-pv',
       items: [
-        { type: 'range', label: '访问时间', startKey: 'timeStart', endKey: 'timeEnd' },
+        { type: 'range', label: t('overview.visitTime'), startKey: 'timeStart', endKey: 'timeEnd' },
         'locationFilter',
         'urlFilter',
         'excludeInternal',
         'ipFilter',
-        { type: 'apply', label: '筛选' },
+        { type: 'apply', label: t('common.apply') },
       ],
     },
   ],
@@ -1023,19 +1057,19 @@ const DETAIL_FILTER_LAYOUTS = {
       className: 'detail-filter-section detail-filter-uv',
       items: [
         'isNew',
-        { type: 'range', label: '访问时间', startKey: 'timeStart', endKey: 'timeEnd' },
+        { type: 'range', label: t('overview.visitTime'), startKey: 'timeStart', endKey: 'timeEnd' },
         'ipFilter',
-        { type: 'apply', label: '筛选' },
+        { type: 'apply', label: t('common.apply') },
       ],
     },
   ],
   session: [
     {
       className: 'detail-filter-section',
-      items: ['ipFilter', 'deviceFilter', 'browserFilter', 'osFilter', { type: 'apply', label: '筛选' }],
+      items: ['ipFilter', 'deviceFilter', 'browserFilter', 'osFilter', { type: 'apply', label: t('common.apply') }],
     },
   ],
-}
+}));
 
 onMounted(() => {
   loadWebsites();
@@ -1104,6 +1138,13 @@ watch(isDark, () => {
     return;
   }
   renderGeoMap(geoData.value);
+});
+
+watch(locale, () => {
+  resetSessionFilterOptions();
+  if (geoData.value.length) {
+    renderGeoMap(geoData.value);
+  }
 });
 
 function refreshAll() {
@@ -1212,7 +1253,7 @@ async function loadTimeSeries() {
     if (error?.name === 'AbortError') {
       return;
     }
-    chartError.value = '趋势数据加载失败，请稍后重试';
+    chartError.value = t('overview.trendError');
   }
 }
 
@@ -1245,9 +1286,9 @@ async function loadGeoMap() {
     const normalizedRows =
       mapView.value === 'china'
         ? rows.map((row) => ({ ...row, name: normalizeChinaRegionName(row.name) }))
-        : rows;
+        : rows.map((row) => ({ ...row, name: normalizeWorldRegionName(row.name) }));
 
-    geoData.value = normalizedRows.filter((row) => row.name !== '国外' && row.name !== '未知');
+    geoData.value = normalizedRows.filter((row) => !isExcludedGeoName(row.name));
     renderGeoMap(geoData.value);
   } catch (error: any) {
     if (error?.name === 'AbortError') {
@@ -1282,7 +1323,7 @@ function renderGeoMap(data: Array<{ name: string; value: number; percentage: num
           trigger: 'item',
           formatter: (params: any) => {
             const value = Number.isFinite(params.value) ? params.value : 0;
-            return `${params.name}<br/>访问量: ${value.toLocaleString()}`;
+            return `${params.name}<br/>${t('overview.geoVisits')}: ${formatCount(value)}`;
           },
         },
         visualMap: {
@@ -1296,7 +1337,7 @@ function renderGeoMap(data: Array<{ name: string; value: number; percentage: num
         },
         geo: {
           map: 'china',
-          nameMap: chinaNameMap,
+          nameMap: chinaNameMap.value,
           roam: true,
           label: {
             show: false,
@@ -1314,11 +1355,11 @@ function renderGeoMap(data: Array<{ name: string; value: number; percentage: num
         },
         series: [
           {
-            name: '访问量',
+            name: t('overview.geoVisits'),
             type: 'map',
             map: 'china',
             geoIndex: 0,
-            nameMap: chinaNameMap,
+            nameMap: chinaNameMap.value,
             data,
           },
         ],
@@ -1334,7 +1375,7 @@ function renderGeoMap(data: Array<{ name: string; value: number; percentage: num
         trigger: 'item',
         formatter: (params: any) => {
           const value = Number.isFinite(params.value) ? params.value : 0;
-          return `${params.name}<br/>访问量: ${value.toLocaleString()}`;
+          return `${params.name}<br/>${t('overview.geoVisits')}: ${formatCount(value)}`;
         },
       },
       visualMap: {
@@ -1348,10 +1389,10 @@ function renderGeoMap(data: Array<{ name: string; value: number; percentage: num
       },
       series: [
         {
-          name: '访问量',
+          name: t('overview.geoVisits'),
           type: 'map',
           map: 'world',
-          nameMap: zhWordNameMap,
+          nameMap: worldNameMap.value,
           roam: true,
           label: {
             show: false,
@@ -1425,7 +1466,7 @@ function renderVisitsChart(stats: TimeSeriesStats) {
       labels: stats.labels,
       datasets: [
         {
-          label: '访客数(UV)',
+          label: t('overview.uv'),
           data: stats.visitors,
           borderColor: '#1e7bff',
           backgroundColor: gradientUv,
@@ -1435,7 +1476,7 @@ function renderVisitsChart(stats: TimeSeriesStats) {
           fill: true,
         },
         {
-          label: '浏览量(PV)',
+          label: t('overview.pv'),
           data: stats.pageviews,
           borderColor: '#ff8a3d',
           backgroundColor: gradientPv,
@@ -1481,9 +1522,9 @@ function renderVisitsChart(stats: TimeSeriesStats) {
               const index = context.dataIndex;
               const fullLabel = stats.labels[index];
               if (context.datasetIndex === 0) {
-                return `${fullLabel} - 访客数(UV): ${stats.visitors[index]}`;
+                return `${fullLabel} - ${t('overview.uv')}: ${stats.visitors[index]}`;
               }
-              return `${fullLabel} - 浏览量(PV): ${stats.pageviews[index]}`;
+              return `${fullLabel} - ${t('overview.pv')}: ${stats.pageviews[index]}`;
             },
           },
         },
@@ -1528,14 +1569,14 @@ function renderNewOldChart(stats: typeof newOldStats.value) {
         labels: stats.labels,
         datasets: [
           {
-            label: '新访客',
+            label: t('overview.newVisitor'),
             data: [currentNew, previousNew],
             backgroundColor: 'rgba(30, 123, 255, 0.7)',
             borderRadius: 10,
             barThickness: 28,
           },
           {
-            label: '老访客',
+            label: t('overview.oldVisitor'),
             data: [currentOld, previousOld],
             backgroundColor: 'rgba(255, 138, 61, 0.7)',
             borderRadius: 10,
@@ -1596,7 +1637,7 @@ function renderDeviceChart(totals: typeof deviceTotals.value) {
     deviceChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['电脑端', '移动端', '其他'],
+        labels: [t('overview.deviceDesktop'), t('overview.deviceMobile'), t('overview.deviceOther')],
         datasets: [
           {
             data,
@@ -1715,7 +1756,7 @@ async function loadDetailTable(config: DetailConfig, requestId: number) {
     if (requestId !== detailRequestId) {
       return;
     }
-    detailRankingRows.value = buildRankingRows(data, config.showPv);
+    detailRankingRows.value = buildRankingRows(data, config.showPv, config.formatLabel);
   } catch (error) {
     if (requestId !== detailRequestId) {
       return;
@@ -1877,21 +1918,25 @@ function updateLogRows(logs: Array<Record<string, any>>, reset: boolean, scope: 
 }
 
 function buildLogRow(log: Record<string, any>, scope: string) {
-  const time = log.time || log.start_time || '--';
-  const url = log.url || '--';
-  const ip = log.ip || '--';
-  const device = log.user_device || '--';
-  const statusCode = log.status_code !== undefined && log.status_code !== null ? log.status_code : '--';
-  const location = log.domestic_location || log.global_location || '--';
+  const time = log.time || log.start_time || t('common.none');
+  const url = log.url || t('common.none');
+  const ip = log.ip || t('common.none');
+  const deviceRaw = log.user_device || t('common.none');
+  const statusCode = log.status_code !== undefined && log.status_code !== null ? log.status_code : t('common.none');
+  const locationRaw = log.domestic_location || log.global_location || t('common.none');
   const isNew = log.is_new_visitor;
-  const newLabel = isNew === true ? '新访客' : isNew === false ? '老访客' : '--';
+  const newLabel = isNew === true ? t('overview.newVisitor') : isNew === false ? t('overview.oldVisitor') : t('common.none');
   const durationSeconds = Number.isFinite(log.duration_seconds) ? log.duration_seconds : 0;
   const durationLabel = formatDurationSeconds(durationSeconds);
-  const pageCount = log.page_count ?? '--';
-  const entryUrl = log.entry_url || '--';
-  const exitUrl = log.exit_url || '--';
-  const browser = log.user_browser || '--';
-  const os = log.user_os || '--';
+  const pageCount = log.page_count ?? t('common.none');
+  const entryUrl = log.entry_url || t('common.none');
+  const exitUrl = log.exit_url || t('common.none');
+  const browserRaw = log.user_browser || t('common.none');
+  const osRaw = log.user_os || t('common.none');
+  const device = formatDeviceLabel(deviceRaw, t);
+  const location = formatLocationLabel(locationRaw, currentLocale.value, t);
+  const browser = formatBrowserLabel(browserRaw, t);
+  const os = formatOSLabel(osRaw, t);
 
   if (scope === 'pv') {
     return {
@@ -1961,9 +2006,9 @@ async function loadSessionFilterOptions(requestId: number) {
       return;
     }
 
-    sessionFilterOptions.deviceFilter = buildOptionList(deviceData?.key);
-    sessionFilterOptions.browserFilter = buildOptionList(browserData?.key);
-    sessionFilterOptions.osFilter = buildOptionList(osData?.key);
+    sessionFilterOptions.deviceFilter = buildOptionList(deviceData?.key, (label) => formatDeviceLabel(label, t));
+    sessionFilterOptions.browserFilter = buildOptionList(browserData?.key, (label) => formatBrowserLabel(label, t));
+    sessionFilterOptions.osFilter = buildOptionList(osData?.key, (label) => formatOSLabel(label, t));
   } catch (error) {
     console.error('加载会话筛选项失败:', error);
   }
@@ -1985,7 +2030,7 @@ function getDetailFieldOptions(scope: 'status' | 'pv' | 'uv' | 'session', key: s
       return sessionFilterOptions.osFilter;
     }
   }
-  return detailFilterFields[scope][key]?.options || [];
+  return detailFilterFields.value[scope][key]?.options || [];
 }
 
 function buildDetailConfig(detailType: string): DetailConfig | null {
@@ -1994,34 +2039,36 @@ function buildDetailConfig(detailType: string): DetailConfig | null {
     case 'geo': {
       const geoInfo = getGeoDetailInfo();
       return {
-        title: `地域详情 · ${geoInfo.label}`,
+        title: t('overview.geoDetailTitle', { label: geoInfo.label }),
         keyLabel: geoInfo.keyLabel,
-        valueLabel: '访客数',
+        valueLabel: t('common.visitors'),
         showPv: false,
+        formatLabel: (label) => formatLocationLabel(label, currentLocale.value, t),
         fetch: () => fetchLocationStats(currentWebsiteId.value, range, geoInfo.type, DETAIL_LIMIT),
       }
     }
     case 'referer':
       return {
-        title: '来路详情',
-        keyLabel: '来路网站',
-        valueLabel: '访客数',
+        title: t('overview.refererDetailTitle'),
+        keyLabel: t('overview.refererSite'),
+        valueLabel: t('common.visitors'),
         showPv: false,
+        formatLabel: (label) => formatRefererLabel(label, currentLocale.value, t),
         fetch: () => fetchRefererStats(currentWebsiteId.value, range, DETAIL_LIMIT),
       }
     case 'url':
       return {
-        title: '受访页详情',
-        keyLabel: '页面地址',
-        valueLabel: '查看次数',
+        title: t('overview.pageDetailTitle'),
+        keyLabel: t('common.url'),
+        valueLabel: t('common.viewCount'),
         showPv: true,
         fetch: () => fetchUrlStats(currentWebsiteId.value, range, DETAIL_LIMIT),
       }
     case 'entry':
       return {
-        title: '入口页详情',
-        keyLabel: '页面地址',
-        valueLabel: '入口次数',
+        title: t('overview.entryDetailTitle'),
+        keyLabel: t('common.url'),
+        valueLabel: t('common.entryCount'),
         showPv: false,
         fetch: async () => {
           const data = await getOverallForDetail(range);
@@ -2030,71 +2077,72 @@ function buildDetailConfig(detailType: string): DetailConfig | null {
       }
     case 'device':
       return {
-        title: '终端设备详情',
-        keyLabel: '设备类型',
-        valueLabel: '访客数',
+        title: t('overview.deviceDetailTitle'),
+        keyLabel: t('overview.deviceType'),
+        valueLabel: t('common.visitors'),
         showPv: false,
+        formatLabel: (label) => formatDeviceLabel(label, t),
         fetch: () => fetchDeviceStats(currentWebsiteId.value, range, DETAIL_LIMIT),
       }
     case 'metric-status':
       return {
-        title: '状态码命中详情',
+        title: t('overview.statusDetailTitle'),
         mode: 'logs',
         layout: 'modal',
         logScope: 'status',
         columns: [
-          { label: '状态码', className: 'detail-status-col' },
-          { label: '命中时间', className: 'detail-time-col' },
-          { label: '访问链接', className: 'detail-url-col' },
-          { label: '访客IP', className: 'detail-ip-col' },
-          { label: '设备类型', className: 'detail-device-col' },
+          { label: t('overview.statusCode'), className: 'detail-status-col' },
+          { label: t('overview.hitTime'), className: 'detail-time-col' },
+          { label: t('overview.visitLink'), className: 'detail-url-col' },
+          { label: t('overview.visitorIp'), className: 'detail-ip-col' },
+          { label: t('overview.deviceType'), className: 'detail-device-col' },
         ],
       }
     case 'metric-pv':
       return {
-        title: '浏览量详情',
+        title: t('overview.pvDetailTitle'),
         mode: 'logs',
         layout: 'modal',
         logScope: 'pv',
         columns: [
-          { label: '访客IP', className: 'detail-ip-col' },
-          { label: '访问地址', className: 'detail-url-col' },
-          { label: 'IP归属地', className: 'detail-location-col' },
-          { label: '访问时间', className: 'detail-time-col' },
-          { label: '设备类型', className: 'detail-device-col' },
+          { label: t('overview.visitorIp'), className: 'detail-ip-col' },
+          { label: t('overview.visitLink'), className: 'detail-url-col' },
+          { label: t('overview.ipLocation'), className: 'detail-location-col' },
+          { label: t('overview.visitTime'), className: 'detail-time-col' },
+          { label: t('overview.deviceType'), className: 'detail-device-col' },
         ],
       }
     case 'metric-uv':
       return {
-        title: '访客数详情',
+        title: t('overview.uvDetailTitle'),
         mode: 'logs',
         layout: 'modal',
         logScope: 'uv',
         columns: [
-          { label: '访客IP', className: 'detail-ip-col' },
-          { label: 'IP归属地', className: 'detail-location-col' },
-          { label: '设备类型', className: 'detail-device-col' },
-          { label: '是否新访客', className: 'detail-new-col' },
-          { label: '访问时间', className: 'detail-time-col' },
+          { label: t('overview.visitorIp'), className: 'detail-ip-col' },
+          { label: t('overview.ipLocation'), className: 'detail-location-col' },
+          { label: t('overview.deviceType'), className: 'detail-device-col' },
+          { label: t('overview.isNewVisitor'), className: 'detail-new-col' },
+          { label: t('overview.visitTime'), className: 'detail-time-col' },
         ],
       }
     case 'metric-session':
       return {
-        title: '会话数详情',
+        title: t('overview.sessionDetailTitle'),
         mode: 'logs',
         layout: 'modal',
         logScope: 'session',
         columns: [
-          { label: '访客IP', className: 'detail-ip-col' },
-          { label: 'IP归属地', className: 'detail-location-col' },
-          { label: '设备类型', className: 'detail-device-col' },
-          { label: '浏览器', className: 'detail-browser-col' },
-          { label: '操作系统', className: 'detail-os-col' },
-          { label: '会话开始时间', className: 'detail-time-col' },
-          { label: '时长', className: 'detail-duration-col' },
-          { label: '页面数', className: 'detail-pages-col' },
-          { label: '入口页', className: 'detail-entry-col' },
-          { label: '退出页', className: 'detail-exit-col' },
+          { label: t('overview.visitorIp'), className: 'detail-ip-col' },
+          { label: t('overview.ipLocation'), className: 'detail-location-col' },
+          { label: t('overview.deviceType'), className: 'detail-device-col' },
+          { label: t('common.browser'), className: 'detail-browser-col' },
+          { label: t('common.os'), className: 'detail-os-col' },
+          { label: t('overview.sessionStart'), className: 'detail-time-col' },
+          { label: t('overview.sessionDuration'), className: 'detail-duration-col' },
+          { label: t('overview.sessionPages'), className: 'detail-pages-col' },
+          { label: t('overview.sessionEntry'), className: 'detail-entry-col' },
+          { label: t('overview.sessionExit'), className: 'detail-exit-col' },
         ],
       }
     default:
@@ -2110,8 +2158,8 @@ function buildDetailColumns(config: DetailConfig | null) {
     return config.columns;
   }
   return [
-    { label: config.keyLabel || '维度', className: 'detail-key-col' },
-    { label: config.valueLabel || '数量', className: 'detail-value-col' },
+    { label: config.keyLabel || t('overview.dimension'), className: 'detail-key-col' },
+    { label: config.valueLabel || t('overview.quantity'), className: 'detail-value-col' },
   ];
 }
 
@@ -2139,12 +2187,16 @@ function buildOverallKey(websiteId: string, range: string) { return `${websiteId
 
 function getGeoDetailInfo() {
   if (mapView.value === 'world') {
-    return { type: 'global', label: '全球', keyLabel: '国家/地区' };
+    return { type: 'global', label: t('overview.global'), keyLabel: t('overview.countryRegion') };
   }
-  return { type: 'domestic', label: '国内', keyLabel: '省份' };
+  return { type: 'domestic', label: t('overview.domestic'), keyLabel: t('common.province') };
 }
 
-function buildRankingRows(data: SimpleSeriesStats | undefined | null, usePv = false) {
+function buildRankingRows(
+  data: SimpleSeriesStats | undefined | null,
+  usePv = false,
+  formatLabel?: (label: string) => string
+) {
   const safeData = data || {};
   const labels = safeData.key || [];
   const values = usePv ? safeData.pv || [] : safeData.uv || [];
@@ -2155,26 +2207,28 @@ function buildRankingRows(data: SimpleSeriesStats | undefined | null, usePv = fa
   }
 
   return labels.map((label: string, index: number) => ({
-    label,
+    label: formatLabel ? formatLabel(label) : label,
     value: values[index] || 0,
     percent: percents[index] || 0,
   }));
 }
 
-function buildGeoRows(rows: Array<{ name: string; value: number; percentage: number }>) { return (rows || []).slice(0, 10).map((row) => ({
-    label: row.name,
+function buildGeoRows(rows: Array<{ name: string; value: number; percentage: number }>) {
+  return (rows || []).slice(0, 10).map((row) => ({
+    label: formatLocationLabel(row.name, currentLocale.value, t),
     value: row.value || 0,
     percent: row.percentage || 0,
-  })); }
+  }));
+}
 
 function buildDeltaTextFromTotals(currentTotal: number, prevTotal: number | null) {
   if (!Number.isFinite(currentTotal) || !Number.isFinite(prevTotal) || (prevTotal ?? 0) <= 0) {
-    return { text: '--', className: '' };
+    return { text: t('common.none'), className: '' };
   }
 
   const delta = ((currentTotal - (prevTotal as number)) / (prevTotal as number)) * 100;
   if (!Number.isFinite(delta)) {
-    return { text: '--', className: '' };
+    return { text: t('common.none'), className: '' };
   }
 
   const absDelta = Math.abs(delta).toFixed(2);
@@ -2192,12 +2246,12 @@ function buildDeltaText(metric: 'pv' | 'uv' | 'session', current: MetricSnapshot
   const prevValue = getMetricValue(metric, previous);
 
   if (!Number.isFinite(currentValue) || !Number.isFinite(prevValue) || prevValue <= 0) {
-    return { text: '--', className: '' };
+    return { text: t('common.none'), className: '' };
   }
 
   const delta = ((currentValue - prevValue) / prevValue) * 100;
   if (!Number.isFinite(delta)) {
-    return { text: '--', className: '' };
+    return { text: t('common.none'), className: '' };
   }
 
   const absDelta = Math.abs(delta).toFixed(2);
@@ -2212,87 +2266,115 @@ function buildDeltaText(metric: 'pv' | 'uv' | 'session', current: MetricSnapshot
 
 function formatCount(value: number | null | undefined) {
   if (!Number.isFinite(value)) {
-    return '--';
+    return t('common.none');
   }
-  return Number(value).toLocaleString('zh-CN');
+  return n(Number(value));
 }
 
 function formatDurationSeconds(seconds: number) {
   if (!Number.isFinite(seconds)) {
-    return '--';
+    return t('common.none');
   }
   const total = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);
   const secs = total % 60;
   if (hours > 0) {
-    return `${hours}小时${minutes}分`;
+    return t('overview.durationHoursMinutes', { hours, minutes });
   }
   if (minutes > 0) {
-    return `${minutes}分${secs}秒`;
+    return t('overview.durationMinutesSeconds', { minutes, seconds: secs });
   }
-  return `${secs}秒`;
+  return t('overview.durationSeconds', { seconds: secs });
 }
 
 function getCompareLabels(range: string) {
   switch (range) {
     case 'today':
-      return ['今日', '昨日'];
+      return [t('overview.todayShort'), t('overview.yesterdayShort')];
     case 'yesterday':
-      return ['昨日', '前日'];
+      return [t('overview.yesterdayShort'), t('overview.dayBeforeShort')];
     case 'last7days':
-      return ['最近7日', '前7日'];
+      return [t('overview.last7DaysShort'), t('overview.prev7DaysShort')];
     case 'last30days':
-      return ['最近30日', '前30日'];
+      return [t('overview.last30DaysShort'), t('overview.prev30DaysShort')];
     case 'week':
-      return ['本周', '上周'];
+      return [t('overview.thisWeek'), t('overview.lastWeek')];
     case 'month':
-      return ['本月', '上月'];
+      return [t('overview.thisMonth'), t('overview.lastMonth')];
     default:
-      return ['当前', '上一期'];
+      return [t('overview.current'), t('overview.previous')];
   }
 }
 
 function getRangeLabel(range: string) {
   switch (range) {
     case 'today':
-      return '今日';
+      return t('overview.todayShort');
     case 'yesterday':
-      return '昨日';
+      return t('overview.yesterdayShort');
     case 'last7days':
-      return '最近7日';
+      return t('overview.last7DaysShort');
     case 'last30days':
-      return '最近30日';
+      return t('overview.last30DaysShort');
     case 'week':
-      return '本周';
+      return t('overview.thisWeek');
     case 'month':
-      return '本月';
+      return t('overview.thisMonth');
     default:
-      return '当前';
+      return t('overview.current');
   }
 }
 
 function getMetricCompareLabels(range: string) {
   switch (range) {
     case 'today':
-      return { prev: '昨日', forecast: '预计今日', sameTime: '昨日此时' };
+      return {
+        prev: t('overview.prevDay'),
+        forecast: t('overview.forecastToday'),
+        sameTime: t('overview.sameTimeYesterday'),
+      };
     case 'yesterday':
-      return { prev: '前日', forecast: '预计昨日', sameTime: '前日此时' };
+      return {
+        prev: t('overview.dayBefore'),
+        forecast: t('overview.forecastYesterday'),
+        sameTime: t('overview.sameTimeDayBefore'),
+      };
     case 'last7days':
-      return { prev: '前7日', forecast: '预计最近7日', sameTime: '前7日此时' };
+      return {
+        prev: t('overview.prev7Days'),
+        forecast: t('overview.forecastLast7Days'),
+        sameTime: t('overview.sameTimePrev7Days'),
+      };
     case 'last30days':
-      return { prev: '前30日', forecast: '预计最近30日', sameTime: '前30日此时' };
+      return {
+        prev: t('overview.prev30Days'),
+        forecast: t('overview.forecastLast30Days'),
+        sameTime: t('overview.sameTimePrev30Days'),
+      };
     case 'week':
-      return { prev: '上周', forecast: '预计本周', sameTime: '上周此时' };
+      return {
+        prev: t('overview.lastWeek'),
+        forecast: t('overview.forecastThisWeek'),
+        sameTime: t('overview.sameTimeLastWeek'),
+      };
     case 'month':
-      return { prev: '上月', forecast: '预计本月', sameTime: '上月此时' };
+      return {
+        prev: t('overview.lastMonth'),
+        forecast: t('overview.forecastThisMonth'),
+        sameTime: t('overview.sameTimeLastMonth'),
+      };
     default:
-      return { prev: '上一期', forecast: '预计当前', sameTime: '上一期此时' };
+      return {
+        prev: t('overview.previous'),
+        forecast: t('overview.forecastCurrent'),
+        sameTime: t('overview.sameTimePrevious'),
+      };
   }
 }
 
-function buildOptionList(items: string[] = []) {
-  const options = [{ value: 'all', label: '全部' }];
+function buildOptionList(items: string[] = [], formatLabel?: (value: string) => string) {
+  const options = [{ value: 'all', label: t('common.all') }];
   const seen = new Set<string>();
   (items || []).forEach((item) => {
     const label = String(item || '').trim();
@@ -2300,7 +2382,7 @@ function buildOptionList(items: string[] = []) {
       return;
     }
     seen.add(label);
-    options.push({ value: label, label });
+    options.push({ value: label, label: formatLabel ? formatLabel(label) : label });
   });
   return options;
 }
@@ -2325,6 +2407,7 @@ type DetailConfig = {
   valueLabel?: string;
   showPv?: boolean;
   fetch?: () => Promise<SimpleSeriesStats>;
+  formatLabel?: (label: string) => string;
   mode?: 'logs';
   layout?: 'panel' | 'modal';
   logScope?: 'status' | 'pv' | 'uv' | 'session';
@@ -2556,45 +2639,53 @@ const zhWordNameMap: Record<string, string> = {
   'S. Sudan': '南苏丹',
 };
 
-const chinaNameMap: Record<string, string> = {
-  北京市: '北京',
-  天津市: '天津',
-  上海市: '上海',
-  重庆市: '重庆',
-  河北省: '河北',
-  山西省: '山西',
-  辽宁省: '辽宁',
-  吉林省: '吉林',
-  黑龙江省: '黑龙江',
-  江苏省: '江苏',
-  浙江省: '浙江',
-  安徽省: '安徽',
-  福建省: '福建',
-  江西省: '江西',
-  山东省: '山东',
-  河南省: '河南',
-  湖北省: '湖北',
-  湖南省: '湖南',
-  广东省: '广东',
-  海南省: '海南',
-  四川省: '四川',
-  贵州省: '贵州',
-  云南省: '云南',
-  陕西省: '陕西',
-  甘肃省: '甘肃',
-  青海省: '青海',
-  台湾省: '台湾',
-  内蒙古自治区: '内蒙古',
-  广西壮族自治区: '广西',
-  西藏自治区: '西藏',
-  宁夏回族自治区: '宁夏',
-  新疆维吾尔自治区: '新疆',
-  香港特别行政区: '香港',
-  澳门特别行政区: '澳门',
-};
+const worldNameMap = computed(() => (currentLocale.value === 'zh-CN' ? zhWordNameMap : undefined));
+const worldNameMapEn: Record<string, string> = Object.entries(zhWordNameMap).reduce((acc, [en, zh]) => {
+  acc[zh] = en;
+  return acc;
+}, {} as Record<string, string>);
+
+const chinaNameMap = computed(() => buildChinaNameMap(currentLocale.value));
+
+function buildChinaNameMap(localeValue: string) {
+  const map: Record<string, string> = {};
+  Object.entries(chinaProvinceAlias).forEach(([full, short]) => {
+    map[full] = localeValue === 'en-US' ? (chinaProvinceMap[short] || short) : short;
+  });
+  return map;
+}
 
 function normalizeChinaRegionName(name: string) {
-  return chinaNameMap[name] || name;
+  const normalized = normalizeChinaProvinceName(name);
+  if (currentLocale.value === 'en-US') {
+    return chinaProvinceMap[normalized] || normalized;
+  }
+  return normalized;
+}
+
+function normalizeWorldRegionName(name: string) {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  if (currentLocale.value === 'en-US') {
+    return worldNameMapEn[trimmed] || trimmed;
+  }
+  return zhWordNameMap[trimmed] || trimmed;
+}
+
+function isExcludedGeoName(name: string) {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) {
+    return true;
+  }
+  const lower = trimmed.toLowerCase();
+  return (
+    trimmed === '国外' ||
+    trimmed === '未知' ||
+    lower === 'overseas' ||
+    lower === 'unknown'
+  );
 }
 </script>
 

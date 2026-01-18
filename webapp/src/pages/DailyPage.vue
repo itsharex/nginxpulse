@@ -1,8 +1,8 @@
 <template>
   <header class="page-header">
     <div class="page-title">
-      <span class="title-chip">数据日报</span>
-      <p class="title-sub">每日概览 · 关键指标 · 行为洞察</p>
+      <span class="title-chip">{{ t('daily.title') }}</span>
+      <p class="title-sub">{{ t('daily.subtitle') }}</p>
     </div>
     <div class="header-actions">
       <WebsiteSelect
@@ -10,7 +10,7 @@
         :websites="websites"
         :loading="websitesLoading"
         id="daily-website-selector"
-        label="站点"
+        :label="t('common.website')"
       />
       <DatePicker
         v-model="currentDate"
@@ -29,14 +29,14 @@
     <div class="card daily-kpi-card">
       <div class="daily-kpi-header">
         <div>
-          <div class="daily-kpi-title">浏览量 (PV)</div>
+          <div class="daily-kpi-title">{{ t('daily.pv') }}</div>
           <div class="daily-kpi-date">{{ currentDate }}</div>
         </div>
         <span class="daily-kpi-icon orange"><i class="ri-pages-line"></i></span>
       </div>
       <div class="daily-kpi-value">{{ kpiMetrics.pv.valueText }}</div>
       <div class="daily-kpi-compare">
-        <span>对比前日</span>
+        <span>{{ t('common.comparePrev') }}</span>
         <span class="daily-kpi-delta" :class="kpiMetrics.pv.deltaClass">{{ kpiMetrics.pv.deltaText }}</span>
         <span class="daily-kpi-rate" :class="kpiMetrics.pv.rateClass">{{ kpiMetrics.pv.rateText }}</span>
       </div>
@@ -44,14 +44,14 @@
     <div class="card daily-kpi-card">
       <div class="daily-kpi-header">
         <div>
-          <div class="daily-kpi-title">访客数 (UV)</div>
+          <div class="daily-kpi-title">{{ t('daily.uv') }}</div>
           <div class="daily-kpi-date">{{ currentDate }}</div>
         </div>
         <span class="daily-kpi-icon green"><i class="ri-user-3-line"></i></span>
       </div>
       <div class="daily-kpi-value">{{ kpiMetrics.uv.valueText }}</div>
       <div class="daily-kpi-compare">
-        <span>对比前日</span>
+        <span>{{ t('common.comparePrev') }}</span>
         <span class="daily-kpi-delta" :class="kpiMetrics.uv.deltaClass">{{ kpiMetrics.uv.deltaText }}</span>
         <span class="daily-kpi-rate" :class="kpiMetrics.uv.rateClass">{{ kpiMetrics.uv.rateText }}</span>
       </div>
@@ -59,14 +59,14 @@
     <div class="card daily-kpi-card">
       <div class="daily-kpi-header">
         <div>
-          <div class="daily-kpi-title">会话数</div>
+          <div class="daily-kpi-title">{{ t('daily.session') }}</div>
           <div class="daily-kpi-date">{{ currentDate }}</div>
         </div>
         <span class="daily-kpi-icon blue"><i class="ri-chat-3-line"></i></span>
       </div>
       <div class="daily-kpi-value">{{ kpiMetrics.session.valueText }}</div>
       <div class="daily-kpi-compare">
-        <span>对比前日</span>
+        <span>{{ t('common.comparePrev') }}</span>
         <span class="daily-kpi-delta" :class="kpiMetrics.session.deltaClass">{{ kpiMetrics.session.deltaText }}</span>
         <span class="daily-kpi-rate" :class="kpiMetrics.session.rateClass">{{ kpiMetrics.session.rateText }}</span>
       </div>
@@ -74,14 +74,14 @@
     <div class="card daily-kpi-card">
       <div class="daily-kpi-header">
         <div>
-          <div class="daily-kpi-title">跳出率</div>
+          <div class="daily-kpi-title">{{ t('daily.bounce') }}</div>
           <div class="daily-kpi-date">{{ currentDate }}</div>
         </div>
         <span class="daily-kpi-icon purple"><i class="ri-run-line"></i></span>
       </div>
       <div class="daily-kpi-value">{{ kpiMetrics.bounce.valueText }}</div>
       <div class="daily-kpi-compare">
-        <span>对比前日</span>
+        <span>{{ t('common.comparePrev') }}</span>
         <span class="daily-kpi-delta" :class="kpiMetrics.bounce.deltaClass">{{ kpiMetrics.bounce.deltaText }}</span>
         <span class="daily-kpi-rate" :class="kpiMetrics.bounce.rateClass">{{ kpiMetrics.bounce.rateText }}</span>
       </div>
@@ -89,14 +89,14 @@
     <div class="card daily-kpi-card">
       <div class="daily-kpi-header">
         <div>
-          <div class="daily-kpi-title">平均访问时长</div>
+          <div class="daily-kpi-title">{{ t('daily.duration') }}</div>
           <div class="daily-kpi-date">{{ currentDate }}</div>
         </div>
         <span class="daily-kpi-icon teal"><i class="ri-time-line"></i></span>
       </div>
       <div class="daily-kpi-value">{{ kpiMetrics.duration.valueText }}</div>
       <div class="daily-kpi-compare">
-        <span>对比前日</span>
+        <span>{{ t('common.comparePrev') }}</span>
         <span class="daily-kpi-delta" :class="kpiMetrics.duration.deltaClass">{{ kpiMetrics.duration.deltaText }}</span>
         <span class="daily-kpi-rate" :class="kpiMetrics.duration.rateClass">{{ kpiMetrics.duration.rateText }}</span>
       </div>
@@ -105,34 +105,34 @@
 
   <section class="daily-mini-grid">
     <div class="card daily-mini-card">
-      <div class="daily-mini-title">每个 IP 平均贡献浏览量</div>
+      <div class="daily-mini-title">{{ t('daily.ipAvg') }}</div>
       <div class="daily-mini-body">
         <div class="daily-mini-metric">
-          <div class="daily-mini-label">变化率</div>
+          <div class="daily-mini-label">{{ t('daily.changeRate') }}</div>
           <div class="daily-mini-value" :class="ipAvg.rateClass">{{ ipAvg.rateText }}</div>
         </div>
         <div class="daily-mini-meta">
-          <div>昨日 <span>{{ ipAvg.currentText }}</span></div>
-          <div>前日 <span>{{ ipAvg.prevText }}</span></div>
+          <div>{{ t('daily.yesterday') }} <span>{{ ipAvg.currentText }}</span></div>
+          <div>{{ t('daily.prevDay') }} <span>{{ ipAvg.prevText }}</span></div>
         </div>
       </div>
     </div>
     <div class="card daily-mini-card">
-      <div class="daily-mini-title">每个 UV 平均贡献浏览量</div>
+      <div class="daily-mini-title">{{ t('daily.uvAvg') }}</div>
       <div class="daily-mini-body">
         <div class="daily-mini-metric">
-          <div class="daily-mini-label">变化率</div>
+          <div class="daily-mini-label">{{ t('daily.changeRate') }}</div>
           <div class="daily-mini-value" :class="ipAvg.rateClass">{{ ipAvg.rateText }}</div>
         </div>
         <div class="daily-mini-meta">
-          <div>昨日 <span>{{ ipAvg.currentText }}</span></div>
-          <div>前日 <span>{{ ipAvg.prevText }}</span></div>
+          <div>{{ t('daily.yesterday') }} <span>{{ ipAvg.currentText }}</span></div>
+          <div>{{ t('daily.prevDay') }} <span>{{ ipAvg.prevText }}</span></div>
         </div>
       </div>
     </div>
     <div class="card daily-trend-card">
       <div class="daily-trend-header">
-        <div class="daily-trend-title">昨日 IP 流量趋势</div>
+        <div class="daily-trend-title">{{ t('daily.trendTitle') }}</div>
         <div class="daily-trend-sub">{{ trendSummary }}</div>
       </div>
       <div class="daily-trend-chart">
@@ -145,7 +145,7 @@
     <div class="daily-section-header">
       <div class="daily-section-title">
         <span class="section-icon blue"><i class="ri-compass-3-line"></i></span>
-        来路分析
+        {{ t('daily.sourceAnalysis') }}
       </div>
     </div>
     <div class="daily-section-body daily-source-grid">
@@ -155,17 +155,17 @@
         </div>
         <div class="daily-summary-cards">
           <div class="daily-summary-card search">
-            <div class="daily-summary-label">搜索引擎</div>
+            <div class="daily-summary-label">{{ t('daily.searchEngine') }}</div>
             <div class="daily-summary-value">{{ sourceCards.search.countText }}</div>
             <div class="daily-summary-rate" :class="sourceCards.search.rateClass">{{ sourceCards.search.rateText }}</div>
           </div>
           <div class="daily-summary-card direct">
-            <div class="daily-summary-label">直接访问</div>
+            <div class="daily-summary-label">{{ t('daily.direct') }}</div>
             <div class="daily-summary-value">{{ sourceCards.direct.countText }}</div>
             <div class="daily-summary-rate" :class="sourceCards.direct.rateClass">{{ sourceCards.direct.rateText }}</div>
           </div>
           <div class="daily-summary-card external">
-            <div class="daily-summary-label">外部链接</div>
+            <div class="daily-summary-label">{{ t('daily.external') }}</div>
             <div class="daily-summary-value">{{ sourceCards.external.countText }}</div>
             <div class="daily-summary-rate" :class="sourceCards.external.rateClass">{{ sourceCards.external.rateText }}</div>
           </div>
@@ -173,22 +173,22 @@
       </div>
       <div class="daily-table-card">
         <div class="daily-tab-bar">
-          <button class="daily-tab" :class="{ active: sourceTab === 'referer' }" @click="sourceTab = 'referer'">来路 TOP10</button>
-          <button class="daily-tab" :class="{ active: sourceTab === 'search' }" @click="sourceTab = 'search'">搜索引擎</button>
+          <button class="daily-tab" :class="{ active: sourceTab === 'referer' }" @click="sourceTab = 'referer'">{{ t('daily.refererTop') }}</button>
+          <button class="daily-tab" :class="{ active: sourceTab === 'search' }" @click="sourceTab = 'search'">{{ t('daily.searchEngine') }}</button>
         </div>
         <div class="table-wrapper">
           <table class="ranking-table" v-show="sourceTab === 'referer'">
             <thead>
               <tr>
-                <th>来路 TOP10</th>
-                <th>IP 数</th>
-                <th>IP 变化</th>
-                <th>变化率</th>
+                <th>{{ t('daily.refererTop') }}</th>
+                <th>{{ t('daily.ipCount') }}</th>
+                <th>{{ t('daily.ipDelta') }}</th>
+                <th>{{ t('daily.changeRate') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!refererRows.length">
-                <td colspan="4">暂无数据</td>
+                <td colspan="4">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in refererRows" :key="row.label">
                 <td>{{ row.label }}</td>
@@ -201,15 +201,15 @@
           <table class="ranking-table" v-show="sourceTab === 'search'">
             <thead>
               <tr>
-                <th>搜索引擎</th>
-                <th>IP 数</th>
-                <th>IP 变化</th>
-                <th>变化率</th>
+                <th>{{ t('daily.searchEngine') }}</th>
+                <th>{{ t('daily.ipCount') }}</th>
+                <th>{{ t('daily.ipDelta') }}</th>
+                <th>{{ t('daily.changeRate') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!searchRows.length">
-                <td colspan="4">暂无数据</td>
+                <td colspan="4">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in searchRows" :key="row.label">
                 <td>{{ row.label }}</td>
@@ -227,27 +227,27 @@
 
   <section class="daily-dual-grid">
     <div class="card daily-section">
-      <div class="daily-section-header">
-        <div class="daily-section-title">
-          <span class="section-icon orange"><i class="ri-pages-line"></i></span>
-          内容分析
-        </div>
+    <div class="daily-section-header">
+      <div class="daily-section-title">
+        <span class="section-icon orange"><i class="ri-pages-line"></i></span>
+        {{ t('daily.contentAnalysis') }}
       </div>
-      <div class="table-wrapper">
-        <table class="ranking-table">
-          <thead>
-            <tr>
-              <th>最受欢迎页面 TOP10</th>
-              <th>贡献 IP</th>
-              <th>环比变化</th>
-              <th>贡献 PV</th>
-              <th>环比变化</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="!contentRows.length">
-              <td colspan="5">暂无数据</td>
-            </tr>
+    </div>
+    <div class="table-wrapper">
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th>{{ t('daily.topPages') }}</th>
+            <th>{{ t('daily.ipContribution') }}</th>
+            <th>{{ t('daily.change') }}</th>
+            <th>{{ t('daily.pvContribution') }}</th>
+            <th>{{ t('daily.change') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="!contentRows.length">
+            <td colspan="5">{{ t('common.noData') }}</td>
+          </tr>
             <tr v-else v-for="row in contentRows" :key="row.label">
               <td>{{ row.label }}</td>
               <td>{{ row.uvText }}</td>
@@ -260,12 +260,12 @@
       </div>
     </div>
     <div class="card daily-section">
-      <div class="daily-section-header">
-        <div class="daily-section-title">
-          <span class="section-icon green"><i class="ri-user-heart-line"></i></span>
-          访客分析
-        </div>
+    <div class="daily-section-header">
+      <div class="daily-section-title">
+        <span class="section-icon green"><i class="ri-user-heart-line"></i></span>
+        {{ t('daily.visitorAnalysis') }}
       </div>
+    </div>
       <div class="daily-visitor-grid">
         <div class="daily-donut">
           <canvas ref="visitorChartRef"></canvas>
@@ -274,16 +274,16 @@
           <table class="ranking-table">
             <thead>
               <tr>
-                <th>访客</th>
-                <th>占比</th>
-                <th>环比</th>
-                <th>平均访问时长</th>
-                <th>平均贡献页面浏览量</th>
+                <th>{{ t('daily.visitor') }}</th>
+                <th>{{ t('common.percentage') }}</th>
+                <th>{{ t('common.change') }}</th>
+                <th>{{ t('daily.avgDuration') }}</th>
+                <th>{{ t('daily.avgPageview') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!visitorRows.length">
-                <td colspan="5">暂无数据</td>
+                <td colspan="5">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in visitorRows" :key="row.label">
                 <td>{{ row.label }}</td>
@@ -303,7 +303,7 @@
     <div class="daily-section-header">
       <div class="daily-section-title">
         <span class="section-icon blue"><i class="ri-device-line"></i></span>
-        终端分析
+        {{ t('daily.deviceAnalysis') }}
       </div>
     </div>
     <div class="daily-device-grid">
@@ -314,35 +314,35 @@
         <div class="daily-device-cards">
           <div class="daily-device-card">
             <div class="daily-device-icon"><i class="ri-computer-line"></i></div>
-            <div class="daily-device-label">PC</div>
+            <div class="daily-device-label">{{ t('daily.devicePc') }}</div>
             <div class="daily-device-value">{{ deviceCards.pc }}</div>
           </div>
           <div class="daily-device-card">
             <div class="daily-device-icon"><i class="ri-apple-line"></i></div>
-            <div class="daily-device-label">iOS</div>
+            <div class="daily-device-label">{{ t('daily.deviceIos') }}</div>
             <div class="daily-device-value">{{ deviceCards.ios }}</div>
           </div>
           <div class="daily-device-card">
             <div class="daily-device-icon"><i class="ri-android-line"></i></div>
-            <div class="daily-device-label">Android</div>
+            <div class="daily-device-label">{{ t('daily.deviceAndroid') }}</div>
             <div class="daily-device-value">{{ deviceCards.android }}</div>
           </div>
         </div>
       </div>
       <div class="daily-device-list">
-        <div class="daily-list-title">城市 TOP10</div>
+        <div class="daily-list-title">{{ t('daily.cityTop') }}</div>
         <div class="table-wrapper">
           <table class="ranking-table">
             <thead>
               <tr>
-                <th>城市</th>
-                <th>占比</th>
-                <th>环比</th>
+                <th>{{ t('daily.city') }}</th>
+                <th>{{ t('common.percentage') }}</th>
+                <th>{{ t('common.change') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!cityRows.length">
-                <td colspan="3">暂无数据</td>
+                <td colspan="3">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in cityRows" :key="row.label">
                 <td>{{ row.label }}</td>
@@ -354,19 +354,19 @@
         </div>
       </div>
       <div class="daily-device-list">
-        <div class="daily-list-title">浏览器 TOP10</div>
+        <div class="daily-list-title">{{ t('daily.browserTop') }}</div>
         <div class="table-wrapper">
           <table class="ranking-table">
             <thead>
               <tr>
-                <th>浏览器</th>
-                <th>占比</th>
-                <th>环比</th>
+                <th>{{ t('common.browser') }}</th>
+                <th>{{ t('common.percentage') }}</th>
+                <th>{{ t('common.change') }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!browserRows.length">
-                <td colspan="3">暂无数据</td>
+                <td colspan="3">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in browserRows" :key="row.label">
                 <td>{{ row.label }}</td>
@@ -385,6 +385,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import {
   fetchBrowserStats,
   fetchDeviceStats,
@@ -398,6 +399,15 @@ import {
   fetchWebsites,
 } from '@/api';
 import type { SimpleSeriesStats, TimeSeriesStats, WebsiteInfo } from '@/api/types';
+import {
+  formatBrowserLabel,
+  formatDeviceLabel,
+  formatLocationLabel,
+  formatRefererLabel,
+  isDirectReferer,
+  normalizeDeviceCategory,
+} from '@/i18n/mappings';
+import { normalizeLocale } from '@/i18n';
 import { formatDate, getUserPreference, saveUserPreference } from '@/utils';
 import { Chart } from '@/utils/chartjs';
 import ParsingOverlay from '@/components/ParsingOverlay.vue';
@@ -408,6 +418,8 @@ const websites = ref<WebsiteInfo[]>([]);
 const websitesLoading = ref(true);
 const currentWebsiteId = ref('');
 const currentDate = ref(formatDate(new Date()));
+const { t, n, locale } = useI18n({ useScope: 'global' });
+const currentLocale = computed(() => normalizeLocale(locale.value));
 
 const overall = ref<Record<string, any> | null>(null);
 const sessionSummary = ref<Record<string, any> | null>(null);
@@ -442,15 +454,15 @@ let dailyRequestId = 0;
 
 const trendSummary = computed(() => {
   if (!timeSeries.value || !timeSeries.value.labels) {
-    return '数据就绪后更新峰谷信息';
+    return t('daily.trendPending');
   }
   const data = timeSeries.value.visitors || [];
   if (!data.length) {
-    return '暂无趋势数据';
+    return t('daily.trendEmpty');
   }
   const maxIndex = data.indexOf(Math.max(...data));
   const minIndex = data.indexOf(Math.min(...data));
-  return `最高峰是 ${maxIndex} 时，最低谷是 ${minIndex} 时`;
+  return t('daily.trendSummary', { max: maxIndex, min: minIndex });
 });
 
 const kpiMetrics = computed(() => {
@@ -501,8 +513,12 @@ const sourceSummary = computed(() => buildSourceSummary(refererStats.value, refe
 const contentRows = computed(() => buildContentRows(urlStats.value, urlPrev.value));
 const visitorRows = computed(() => buildVisitorRows(overall.value, sessionSummary.value));
 const deviceCards = computed(() => buildDeviceCards(deviceStats.value, osStats.value));
-const browserRows = computed(() => buildSimpleRows(browserStats.value, browserPrev.value));
-const cityRows = computed(() => buildSimpleRows(cityStats.value, cityPrev.value));
+const browserRows = computed(() =>
+  buildSimpleRows(browserStats.value, browserPrev.value, (label) => formatBrowserLabel(label, t))
+);
+const cityRows = computed(() =>
+  buildSimpleRows(cityStats.value, cityPrev.value, (label) => formatLocationLabel(label, currentLocale.value, t))
+);
 
 onMounted(() => {
   initDateFromQuery();
@@ -668,7 +684,7 @@ function renderTrend(stats: TimeSeriesStats) {
       labels: stats.labels,
       datasets: [
         {
-          label: 'IP 流量',
+          label: t('daily.ipTraffic'),
           data: stats.visitors,
           borderColor: '#1e7bff',
           backgroundColor: gradient,
@@ -705,7 +721,7 @@ function renderSourceDonut(groups: Record<string, number>) {
   sourceChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['搜索引擎', '直接访问', '外部链接'],
+      labels: [t('daily.searchEngine'), t('daily.direct'), t('daily.external')],
       datasets: [
         {
           data: [groups.search, groups.direct, groups.external],
@@ -738,7 +754,7 @@ function renderVisitorDonut() {
   visitorChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['新访客', '老访客'],
+      labels: [t('daily.newVisitor'), t('daily.oldVisitor')],
       datasets: [
         {
           data: [current.newVisitorCount || 0, current.returningVisitorCount || 0],
@@ -767,13 +783,13 @@ function renderDeviceDonut() {
   if (!ctx) {
     return;
   }
-  const pcCount = getDeviceCount(deviceStats.value, ['桌面设备']);
+  const pcCount = getDeviceCount(deviceStats.value, 'desktop');
   const iosCount = getOsCount(osStats.value, ['ios', 'iphone', 'ipad']);
   const androidCount = getOsCount(osStats.value, ['android']);
   deviceChart = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['PC', 'iOS', 'Android'],
+      labels: [t('daily.devicePc'), t('daily.deviceIos'), t('daily.deviceAndroid')],
       datasets: [
         {
           data: [pcCount, iosCount, androidCount],
@@ -860,11 +876,11 @@ function buildRefererRows(stats: SimpleSeriesStats | null, prevStats: SimpleSeri
   const keys = stats?.key || [];
   const uvs = stats?.uv || [];
   const rows = keys
-    .map((key, idx) => ({ label: key, value: uvs[idx] || 0 }))
-    .filter((item) => (searchOnly ? isSearchEngine(item.label) : true));
+    .map((key, idx) => ({ rawLabel: key, label: formatRefererLabel(key, currentLocale.value, t), value: uvs[idx] || 0 }))
+    .filter((item) => (searchOnly ? isSearchEngine(item.rawLabel) : true));
 
   return rows.map((item) => {
-    const prev = prevMap[item.label] || 0;
+    const prev = prevMap[item.rawLabel] || 0;
     const delta = item.value - prev;
     const rate = calcRate(item.value, prev);
     return {
@@ -917,8 +933,8 @@ function buildVisitorRows(overallData: Record<string, any> | null, sessionData: 
   const avgPV = overallData.uv ? overallData.pv / overallData.uv : 0;
 
   const rows = [
-    { label: '新访客', count: newCount, prev: prevNew },
-    { label: '老访客', count: returningCount, prev: prevReturning },
+    { label: t('daily.newVisitor'), count: newCount, prev: prevNew },
+    { label: t('daily.oldVisitor'), count: returningCount, prev: prevReturning },
   ];
 
   return rows.map((item) => {
@@ -936,7 +952,7 @@ function buildVisitorRows(overallData: Record<string, any> | null, sessionData: 
 }
 
 function buildDeviceCards(deviceData: SimpleSeriesStats | null, osData: SimpleSeriesStats | null) {
-  const pcCount = getDeviceCount(deviceData, ['桌面设备']);
+  const pcCount = getDeviceCount(deviceData, 'desktop');
   const iosCount = getOsCount(osData, ['ios', 'iphone', 'ipad']);
   const androidCount = getOsCount(osData, ['android']);
   return {
@@ -946,7 +962,11 @@ function buildDeviceCards(deviceData: SimpleSeriesStats | null, osData: SimpleSe
   }
 }
 
-function buildSimpleRows(stats: SimpleSeriesStats | null, prevStats: SimpleSeriesStats | null) {
+function buildSimpleRows(
+  stats: SimpleSeriesStats | null,
+  prevStats: SimpleSeriesStats | null,
+  formatLabel?: (label: string) => string
+) {
   const prevMap = buildStatMap(prevStats);
   const keys = stats?.key || [];
   const uvs = stats?.uv || [];
@@ -961,7 +981,7 @@ function buildSimpleRows(stats: SimpleSeriesStats | null, prevStats: SimpleSerie
     const prev = prevMap[key] || 0;
     const rate = calcRate(value, prev);
     return {
-      label: key,
+      label: formatLabel ? formatLabel(key) : key,
       shareText: formatPercent(share),
       rateText: formatRate(rate),
       rateClass: rateClass(rate),
@@ -971,13 +991,13 @@ function buildSimpleRows(stats: SimpleSeriesStats | null, prevStats: SimpleSerie
 
 function buildSourceSummary(stats: SimpleSeriesStats | null, prevStats: SimpleSeriesStats | null) {
   if (!stats || !stats.key) {
-    return '暂无来路数据';
+    return t('daily.sourceEmpty');
   }
   const prevMap = buildStatMap(prevStats);
   const keys = stats.key || [];
   const uvs = stats.uv || [];
   if (!keys.length) {
-    return '暂无来路数据';
+    return t('daily.sourceEmpty');
   }
   const diffs = keys.map((key, idx) => ({
     key,
@@ -989,9 +1009,14 @@ function buildSourceSummary(stats: SimpleSeriesStats | null, prevStats: SimpleSe
   const falling = diffs.reduce((acc, item) => (item.rate !== null && item.rate < (acc.rate ?? Infinity) ? item : acc), {
     rate: Infinity,
   });
-  return `上升最快的是 ${rising.key || '-'} ${formatRate(rising.rate)}，下降最快的是 ${falling.key || '-'} ${formatRate(
-    falling.rate
-  )}`;
+  const risingLabel = rising.key ? formatRefererLabel(rising.key, currentLocale.value, t) : t('common.none');
+  const fallingLabel = falling.key ? formatRefererLabel(falling.key, currentLocale.value, t) : t('common.none');
+  return t('daily.sourceSummary', {
+    rising: risingLabel,
+    risingRate: formatRate(rising.rate),
+    falling: fallingLabel,
+    fallingRate: formatRate(falling.rate),
+  });
 }
 
 function calcRate(current: number, prev: number) {
@@ -1006,42 +1031,42 @@ function calcRate(current: number, prev: number) {
 
 function formatNumber(value: number) {
   if (value === null || value === undefined) {
-    return '--';
+    return t('common.none');
   }
-  return Number(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 });
+  return n(Number(value));
 }
 
 function formatPercent(value: number) {
   if (value === null || value === undefined) {
-    return '--';
+    return t('common.none');
   }
-  return `${(value * 100).toFixed(2)}%`;
+  return n(value, 'percent');
 }
 
 function formatRate(rate: number | null) {
   if (rate === null) {
-    return '-';
+    return t('common.none');
   }
   return `${rate >= 0 ? '+' : ''}${(rate * 100).toFixed(2)}%`;
 }
 
 function formatSigned(value: number) {
   if (value === null || value === undefined) {
-    return '--';
+    return t('common.none');
   }
   return `${value >= 0 ? '+' : ''}${value}`;
 }
 
 function formatSignedPercent(value: number) {
   if (value === null || value === undefined) {
-    return '--';
+    return t('common.none');
   }
   return `${value >= 0 ? '+' : ''}${(value * 100).toFixed(2)}%`;
 }
 
 function formatSignedDuration(value: number) {
   if (value === null || value === undefined) {
-    return '--';
+    return t('common.none');
   }
   const prefix = value >= 0 ? '+' : '-';
   return `${prefix}${formatDuration(Math.abs(value))}`;
@@ -1080,9 +1105,18 @@ function buildStatMap(stats: SimpleSeriesStats | null, field: 'uv' | 'pv' = 'uv'
   return map;
 }
 
-function getDeviceCount(stats: SimpleSeriesStats | null, names: string[]) {
-  const map = buildStatMap(stats);
-  return names.reduce((sum, name) => sum + (map[name] || 0), 0);
+function getDeviceCount(stats: SimpleSeriesStats | null, category: 'desktop' | 'mobile' | 'other') {
+  if (!stats || !stats.key) {
+    return 0;
+  }
+  let total = 0;
+  const values = stats.uv || [];
+  stats.key.forEach((key, idx) => {
+    if (normalizeDeviceCategory(key) === category) {
+      total += values[idx] || 0;
+    }
+  });
+  return total;
 }
 
 function getOsCount(stats: SimpleSeriesStats | null, keywords: string[]) {
@@ -1116,8 +1150,6 @@ function groupReferers(stats: SimpleSeriesStats | null) {
   });
   return groups;
 }
-
-function isDirectReferer(value: string) { return value === '直接输入网址访问' || value === '站内访问' || value === '-' || value === ''; }
 
 const searchEngines = ['baidu.', 'google.', 'bing.', 'sogou.', '360.', 'so.com', 'yahoo.', 'duckduckgo.', 'yandex.'];
 

@@ -11,7 +11,8 @@
     "taskInterval": "1m",
     "logRetentionDays": 30,
     "demoMode": false,
-    "accessKeys": []
+    "accessKeys": [],
+    "language": "zh-CN"
   },
   "server": {
     "Port": ":8089"

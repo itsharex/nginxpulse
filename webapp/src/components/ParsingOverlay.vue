@@ -3,7 +3,7 @@
     <div class="parsing-card" role="status" aria-live="polite">
       <div class="parsing-spinner" aria-hidden="true"></div>
       <div class="parsing-copy">
-        <div class="parsing-text">日志解析中，请稍等片刻...</div>
+        <div class="parsing-text">{{ t('parsing.text') }}</div>
         <div v-if="progressLabel" class="parsing-progress">{{ progressLabel }}</div>
       </div>
     </div>
@@ -12,6 +12,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, inject } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { fetchAppStatus } from '@/api';
 
 const emit = defineEmits<{
@@ -24,6 +25,7 @@ const setParsingActive = inject<((value: boolean) => void) | null>('setParsingAc
 const isParsing = ref(false);
 const progressPercent = ref<number | null>(null);
 const bodyOverflow = ref<string | null>(null);
+const { t } = useI18n({ useScope: 'global' });
 const POLL_INTERVAL = 5000;
 let timer: number | null = null;
 let lastParsing: boolean | null = null;
@@ -32,7 +34,7 @@ const progressLabel = computed(() => {
   if (progressPercent.value === null) {
     return '';
   }
-  return `已完成 ${progressPercent.value}%`;
+  return t('parsing.progress', { value: progressPercent.value });
 });
 
 function normalizeProgress(value: unknown): number | null {

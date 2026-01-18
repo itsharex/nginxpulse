@@ -12,8 +12,8 @@ const router = createRouter({
       name: 'overview',
       component: OverviewPage,
       meta: {
-        sidebarLabel: '近期活跃',
-        sidebarHint: '15 分钟活跃访客',
+        sidebarLabelKey: 'app.sidebar.recentActive',
+        sidebarHintKey: 'app.sidebar.recentActiveHint',
         mainClass: '',
       },
     },
@@ -22,8 +22,8 @@ const router = createRouter({
       name: 'daily',
       component: DailyPage,
       meta: {
-        sidebarLabel: '日报说明',
-        sidebarHint: '按天聚合统计并提供趋势解读',
+        sidebarLabelKey: 'app.menu.daily',
+        sidebarHintKey: 'app.sidebar.dailyHint',
         mainClass: 'daily-page',
       },
     },
@@ -32,8 +32,8 @@ const router = createRouter({
       name: 'realtime',
       component: RealtimePage,
       meta: {
-        sidebarLabel: '实时概览',
-        sidebarHint: '关注窗口内实时行为趋势',
+        sidebarLabelKey: 'app.menu.realtime',
+        sidebarHintKey: 'app.sidebar.realtimeHint',
         mainClass: 'realtime-page',
       },
     },
@@ -42,8 +42,8 @@ const router = createRouter({
       name: 'logs',
       component: LogsPage,
       meta: {
-        sidebarLabel: '日志查询',
-        sidebarHint: '按条件过滤并分页浏览',
+        sidebarLabelKey: 'app.menu.logs',
+        sidebarHintKey: 'app.sidebar.logsHint',
         mainClass: 'logs-page',
       },
     },

@@ -17,27 +17,60 @@
         </div>
         <div class="brand-text">
           <div class="brand-title">NginxPulse</div>
-          <div class="brand-sub">Nginx 访问分析</div>
+          <div class="brand-sub">{{ t('app.brand.subtitle') }}</div>
         </div>
       </div>
       <nav class="menu">
-        <RouterLink to="/" class="menu-item" :class="{ active: isActive('/') }">概况</RouterLink>
-        <RouterLink to="/daily" class="menu-item" :class="{ active: isActive('/daily') }">数据日报</RouterLink>
-        <RouterLink to="/realtime" class="menu-item" :class="{ active: isActive('/realtime') }">实时</RouterLink>
-        <RouterLink to="/logs" class="menu-item" :class="{ active: isActive('/logs') }">访问明细</RouterLink>
+        <RouterLink to="/" class="menu-item" :class="{ active: isActive('/') }">{{ t('app.menu.overview') }}</RouterLink>
+        <RouterLink to="/daily" class="menu-item" :class="{ active: isActive('/daily') }">{{ t('app.menu.daily') }}</RouterLink>
+        <RouterLink to="/realtime" class="menu-item" :class="{ active: isActive('/realtime') }">{{ t('app.menu.realtime') }}</RouterLink>
+        <RouterLink to="/logs" class="menu-item" :class="{ active: isActive('/logs') }">{{ t('app.menu.logs') }}</RouterLink>
       </nav>
+      <div class="sidebar-language-compact" role="group" :aria-label="t('app.sidebar.language')">
+        <button
+          v-for="option in languageOptions"
+          :key="option.value"
+          class="sidebar-language-btn"
+          :class="{ active: option.value === currentLocale }"
+          type="button"
+          :aria-pressed="option.value === currentLocale"
+          :aria-label="option.label"
+          @click="currentLocale = option.value"
+        >
+          <i :class="['language-icon', option.icon]" aria-hidden="true"></i>
+          <span>{{ option.shortLabel }}</span>
+        </button>
+      </div>
       <div class="sidebar-footer">
         <template v-if="isActive('/')">
-          <div class="sidebar-label">近期活跃</div>
+          <div class="sidebar-label">{{ t('app.sidebar.recentActive') }}</div>
           <div class="sidebar-metric">
             <div class="sidebar-metric-value">{{ liveVisitorText }}</div>
-            <div class="sidebar-metric-label">15 分钟活跃访客</div>
+            <div class="sidebar-metric-label">{{ t('app.sidebar.recentActiveHint') }}</div>
           </div>
         </template>
         <template v-else>
           <div class="sidebar-label">{{ sidebarLabel }}</div>
           <div class="sidebar-hint">{{ sidebarHint }}</div>
         </template>
+        <div class="sidebar-language-toggle">
+          <div class="sidebar-language-label">{{ t('app.sidebar.language') }}</div>
+          <div class="sidebar-language-group" role="group" :aria-label="t('app.sidebar.language')">
+            <button
+              v-for="option in languageOptions"
+              :key="option.value"
+              class="sidebar-language-btn"
+              :class="{ active: option.value === currentLocale }"
+              type="button"
+              :aria-pressed="option.value === currentLocale"
+              :aria-label="option.label"
+              @click="currentLocale = option.value"
+            >
+              <i :class="['language-icon', option.icon]" aria-hidden="true"></i>
+              <span>{{ option.shortLabel }}</span>
+            </button>
+          </div>
+        </div>
         <div v-if="versionText" class="app-version">
           <span class="app-version-dot" aria-hidden="true"></span>
           <span>{{ versionText }}</span>
@@ -47,9 +80,9 @@
 
     <main class="main-content" :class="[mainClass, { 'parsing-lock': parsingActive }]">
       <div v-if="demoMode" class="demo-mode-banner">
-        <span class="demo-mode-badge">演示模式</span>
+        <span class="demo-mode-badge">{{ t('demo.badge') }}</span>
         <span class="demo-mode-text">
-          当前处于演示模式，数据均为模拟数据。项目源码请移步：
+          {{ t('demo.text') }}
           <a href="https://github.com/likaia/nginxpulse/" target="_blank" rel="noopener">https://github.com/likaia/nginxpulse/</a>
         </span>
       </div>
@@ -58,21 +91,21 @@
 
     <div v-if="accessKeyRequired" class="access-gate">
       <div class="access-card">
-        <div class="access-title">需要访问密钥</div>
-        <div class="access-sub">请输入配置的访问密钥后继续使用 NginxPulse。</div>
+        <div class="access-title">{{ t('access.title') }}</div>
+        <div class="access-sub">{{ t('access.subtitle') }}</div>
         <form class="access-form" @submit.prevent="submitAccessKey">
           <input
             v-model="accessKeyInput"
             class="access-input"
             type="password"
             autocomplete="current-password"
-            placeholder="输入访问密钥"
+            :placeholder="t('access.placeholder')"
           />
           <button class="access-submit" type="submit" :disabled="accessKeySubmitting">
-            {{ accessKeySubmitting ? '验证中...' : '进入系统' }}
+            {{ accessKeySubmitting ? t('access.submitting') : t('access.submit') }}
           </button>
         </form>
-        <div v-if="accessKeyError" class="access-error">{{ accessKeyError }}</div>
+        <div v-if="accessKeyErrorMessage" class="access-error">{{ accessKeyErrorMessage }}</div>
       </div>
     </div>
   </div>
@@ -81,15 +114,27 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import { RouterLink, RouterView, useRoute } from 'vue-router';
+import { usePrimeVue } from 'primevue/config';
+import { useI18n } from 'vue-i18n';
 import { fetchAppStatus } from '@/api';
+import { getLocaleFromQuery, getStoredLocale, normalizeLocale, setLocale } from '@/i18n';
+import { primevueLocales } from '@/i18n/primevue';
 
 const route = useRoute();
+const primevue = usePrimeVue();
+const { t, n, locale } = useI18n({ useScope: 'global' });
 
 const ACCESS_KEY_STORAGE = 'nginxpulse_access_key';
 const ACCESS_KEY_EVENT = 'nginxpulse:access-key-required';
 
-const sidebarLabel = computed(() => (route.meta.sidebarLabel as string) || '');
-const sidebarHint = computed(() => (route.meta.sidebarHint as string) || '');
+const sidebarLabel = computed(() => {
+  const key = route.meta.sidebarLabelKey as string;
+  return key ? t(key) : '';
+});
+const sidebarHint = computed(() => {
+  const key = route.meta.sidebarHintKey as string;
+  return key ? t(key) : '';
+});
 const mainClass = computed(() => (route.meta.mainClass as string) || '');
 
 const isActive = (path: string) => route.path === path;
@@ -102,7 +147,18 @@ const appVersion = ref('');
 const accessKeyRequired = ref(false);
 const accessKeySubmitting = ref(false);
 const accessKeyInput = ref(localStorage.getItem(ACCESS_KEY_STORAGE) || '');
-const accessKeyError = ref('');
+const accessKeyErrorKey = ref<string | null>(null);
+const accessKeyErrorText = ref('');
+
+const languageOptions = computed(() => [
+  { value: 'zh-CN', label: t('language.zh'), shortLabel: t('language.zhShort'), icon: 'ri-translate-2' },
+  { value: 'en-US', label: t('language.en'), shortLabel: t('language.enShort'), icon: 'ri-global-line' },
+]);
+
+const currentLocale = computed({
+  get: () => normalizeLocale(locale.value),
+  set: (value: string) => setLocale(normalizeLocale(value)),
+});
 
 const applyTheme = (value: boolean) => {
   if (value) {
@@ -134,6 +190,11 @@ watch(isDark, (value) => {
   applyTheme(value);
 });
 
+watch(locale, (value) => {
+  const normalized = normalizeLocale(value);
+  primevue.config.locale = primevueLocales[normalized];
+});
+
 provide('theme', {
   isDark,
   toggle: toggleTheme,
@@ -155,12 +216,18 @@ async function refreshAppStatus() {
     demoMode.value = Boolean(status.demo_mode);
     appVersion.value = status.version ?? '';
     accessKeyRequired.value = false;
-    accessKeyError.value = '';
+    accessKeyErrorKey.value = null;
+    accessKeyErrorText.value = '';
+    const hasStoredLocale = getStoredLocale() !== null;
+    const hasQueryLocale = getLocaleFromQuery() !== null;
+    if (!hasStoredLocale && !hasQueryLocale && status.language) {
+      setLocale(normalizeLocale(status.language), false);
+    }
   } catch (error) {
-    const message = error instanceof Error ? error.message : '请求失败';
-    if (message.includes('密钥')) {
+    const message = error instanceof Error ? error.message : t('common.requestFailed');
+    if (message.toLowerCase().includes('key') || message.includes('密钥')) {
       accessKeyRequired.value = true;
-      accessKeyError.value = message;
+      setAccessKeyErrorMessage(message);
     } else {
       console.error('获取系统状态失败:', error);
     }
@@ -170,13 +237,14 @@ async function refreshAppStatus() {
 function handleAccessKeyEvent(event: Event) {
   const detail = (event as CustomEvent<{ message?: string }>).detail;
   accessKeyRequired.value = true;
-  accessKeyError.value = detail?.message || '需要访问密钥';
+  setAccessKeyErrorMessage(detail?.message || '');
 }
 
 async function submitAccessKey() {
   const value = accessKeyInput.value.trim();
   if (!value) {
-    accessKeyError.value = '请输入访问密钥';
+    accessKeyErrorKey.value = 'access.required';
+    accessKeyErrorText.value = '';
     return;
   }
   accessKeySubmitting.value = true;
@@ -188,13 +256,35 @@ async function submitAccessKey() {
   }
 }
 
+function setAccessKeyErrorMessage(message: string) {
+  const normalized = message.trim().toLowerCase();
+  if (!message || normalized.includes('需要访问密钥') || normalized.includes('access key required')) {
+    accessKeyErrorKey.value = 'access.title';
+    accessKeyErrorText.value = '';
+    return;
+  }
+  if (normalized.includes('访问密钥无效') || normalized.includes('invalid')) {
+    accessKeyErrorKey.value = 'access.invalid';
+    accessKeyErrorText.value = '';
+    return;
+  }
+  accessKeyErrorKey.value = null;
+  accessKeyErrorText.value = message;
+}
+
 const liveVisitorText = computed(() =>
   Number.isFinite(liveVisitorCount.value ?? NaN)
-    ? (liveVisitorCount.value as number).toLocaleString('zh-CN')
+    ? n(liveVisitorCount.value as number)
     : '--'
 );
 
 const versionText = computed(() => appVersion.value || '');
+const accessKeyErrorMessage = computed(() => {
+  if (accessKeyErrorKey.value) {
+    return t(accessKeyErrorKey.value);
+  }
+  return accessKeyErrorText.value;
+});
 </script>
 
 <style lang="scss" scoped>

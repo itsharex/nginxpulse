@@ -32,7 +32,6 @@ var (
 const (
 	ipAPIBatchURL  = "http://ip-api.com/batch"
 	ipAPIFields    = "status,message,country,countryCode,region,regionName,city,isp,query"
-	ipAPILanguage  = "zh-CN"
 	ipAPITimeout   = 1200 * time.Millisecond
 	maxIPCacheSize = 50000
 	ipAPIBatchSize = 100
@@ -328,12 +327,13 @@ func queryIPLocationRemoteBatch(ips []string) (map[string]ipLocationCacheEntry, 
 		}
 
 		batch := ips[start:end]
+		language := resolveIPAPILanguage()
 		requestPayload := make([]ipAPIBatchRequest, 0, len(batch))
 		for _, ip := range batch {
 			requestPayload = append(requestPayload, ipAPIBatchRequest{
 				Query:  ip,
 				Fields: ipAPIFields,
-				Lang:   ipAPILanguage,
+				Lang:   language,
 			})
 		}
 
@@ -384,7 +384,7 @@ func queryIPLocationRemoteBatch(ips []string) (map[string]ipLocationCacheEntry, 
 				continue
 			}
 
-			domestic := formatDomesticLocation(item.Country, item.RegionName, item.City)
+			domestic := formatDomesticLocation(item.Country, item.CountryCode, item.RegionName, item.City)
 			global := formatGlobalLocation(item.Country)
 			if domestic == "" {
 				domestic = "未知"
@@ -448,17 +448,21 @@ func splitRegion(region string) []string {
 	return parts
 }
 
-func formatDomesticLocation(country, regionName, city string) string {
+func formatDomesticLocation(country, countryCode, regionName, city string) string {
 	country = strings.TrimSpace(country)
+	countryCode = strings.TrimSpace(countryCode)
 	if country == "" || country == "0" {
 		return "未知"
 	}
-	if country != "中国" {
+	if country != "中国" && !strings.EqualFold(country, "china") && !strings.EqualFold(countryCode, "CN") {
 		return joinLocationParts(country, regionName, city)
 	}
 	province := removeSuffixes(strings.TrimSpace(regionName))
 	city = removeSuffixes(strings.TrimSpace(city))
 	if province == "" && city == "" {
+		if country != "" && country != "0" {
+			return country
+		}
 		return "中国"
 	}
 	if province != "" && city != "" && province == city {
@@ -495,6 +499,15 @@ func normalizeLocationPart(value string) string {
 		return ""
 	}
 	return clean
+}
+
+func resolveIPAPILanguage() string {
+	switch config.GetLanguage() {
+	case config.EnglishLanguage:
+		return "en"
+	default:
+		return config.DefaultLanguage
+	}
 }
 
 func getCachedLocation(ip string) (string, string, bool) {
