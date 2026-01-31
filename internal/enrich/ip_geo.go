@@ -690,6 +690,22 @@ func ResetIPGeoCache() {
 	ipGeoCache = make(map[string]ipLocationCacheEntry)
 }
 
+// DeleteIPGeoCacheEntries removes specific IPs from the in-memory cache.
+func DeleteIPGeoCacheEntries(ips []string) {
+	if len(ips) == 0 {
+		return
+	}
+	ipGeoCacheMu.Lock()
+	defer ipGeoCacheMu.Unlock()
+	for _, raw := range ips {
+		ip := strings.TrimSpace(raw)
+		if ip == "" {
+			continue
+		}
+		delete(ipGeoCache, ip)
+	}
+}
+
 // 是否是内网 IP
 func isPrivateIP(ip net.IP) bool {
 	if ip == nil {

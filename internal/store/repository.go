@@ -35,6 +35,17 @@ type NginxLogRecord struct {
 	GlobalLocation   string    `json:"global_location"`
 }
 
+type IPGeoAnomalyLog struct {
+	ID               int64  `json:"id"`
+	IP               string `json:"ip"`
+	Timestamp        int64  `json:"timestamp"`
+	Time             string `json:"time"`
+	Method           string `json:"method"`
+	URL              string `json:"url"`
+	DomesticLocation string `json:"domestic_location"`
+	GlobalLocation   string `json:"global_location"`
+}
+
 func sanitizeUTF8(s string) string {
 	if s == "" || utf8.ValidString(s) {
 		return s
@@ -191,6 +202,39 @@ func (r *Repository) GetIPGeoCache(ips []string) (map[string]IPGeoCacheEntry, er
 
 func (r *Repository) ClearIPGeoCache() error {
 	_, err := r.db.Exec(`DELETE FROM "ip_geo_cache"`)
+	return err
+}
+
+func (r *Repository) DeleteIPGeoCache(ips []string) error {
+	if len(ips) == 0 {
+		return nil
+	}
+
+	unique := make([]string, 0, len(ips))
+	seen := make(map[string]struct{}, len(ips))
+	for _, raw := range ips {
+		ip := strings.TrimSpace(raw)
+		if ip == "" {
+			continue
+		}
+		if _, ok := seen[ip]; ok {
+			continue
+		}
+		seen[ip] = struct{}{}
+		unique = append(unique, ip)
+	}
+	if len(unique) == 0 {
+		return nil
+	}
+
+	placeholders := make([]string, len(unique))
+	args := make([]interface{}, len(unique))
+	for i, ip := range unique {
+		placeholders[i] = "?"
+		args[i] = ip
+	}
+	query := fmt.Sprintf(`DELETE FROM "ip_geo_cache" WHERE ip IN (%s)`, strings.Join(placeholders, ","))
+	_, err := r.db.Exec(sqlutil.ReplacePlaceholders(query), args...)
 	return err
 }
 
@@ -445,6 +489,65 @@ func (r *Repository) DetectIPGeoAnomalies(websiteID string, limit int) (int, []s
 	return r.detectIPGeoAnomaliesForWebsite(websiteID, limit)
 }
 
+func (r *Repository) FetchIPGeoAnomalyLogs(websiteID string, page, pageSize int) ([]IPGeoAnomalyLog, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+	if pageSize > 500 {
+		pageSize = 500
+	}
+	logTable := fmt.Sprintf("%s_nginx_logs", websiteID)
+	exists, err := r.tableExists(logTable)
+	if err != nil || !exists {
+		return nil, err
+	}
+	ipTable := fmt.Sprintf("%s_dim_ip", websiteID)
+	urlTable := fmt.Sprintf("%s_dim_url", websiteID)
+	locationTable := fmt.Sprintf("%s_dim_location", websiteID)
+
+	args := make([]interface{}, 0, len(ipGeoAnomalyKeywords)*2)
+	whereClause := buildIPGeoAnomalyWhereClause("loc.domestic", "loc.global", &args)
+	if whereClause == "" {
+		return nil, nil
+	}
+	offset := (page - 1) * pageSize
+	query := fmt.Sprintf(
+		`SELECT l.id, l.timestamp, l.method, url.url, ip.ip, loc.domestic, loc.global
+         FROM "%s" AS l
+         JOIN "%s" AS ip ON l.ip_id = ip.id
+         JOIN "%s" AS url ON l.url_id = url.id
+         JOIN "%s" AS loc ON l.location_id = loc.id
+         WHERE %s
+         ORDER BY l.timestamp DESC
+         LIMIT ? OFFSET ?`,
+		logTable, ipTable, urlTable, locationTable, whereClause,
+	)
+	args = append(args, pageSize, offset)
+
+	rows, err := r.db.Query(sqlutil.ReplacePlaceholders(query), args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	logs := make([]IPGeoAnomalyLog, 0, pageSize)
+	for rows.Next() {
+		var entry IPGeoAnomalyLog
+		if err := rows.Scan(&entry.ID, &entry.Timestamp, &entry.Method, &entry.URL, &entry.IP, &entry.DomesticLocation, &entry.GlobalLocation); err != nil {
+			return nil, err
+		}
+		entry.Time = time.Unix(entry.Timestamp, 0).Format("2006-01-02 15:04:05")
+		logs = append(logs, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return logs, nil
+}
+
 func (r *Repository) detectIPGeoAnomaliesForWebsite(websiteID string, limit int) (int, []string, error) {
 	tableName := fmt.Sprintf("%s_dim_location", websiteID)
 	exists, err := r.tableExists(tableName)
@@ -452,32 +555,13 @@ func (r *Repository) detectIPGeoAnomaliesForWebsite(websiteID string, limit int)
 		return 0, nil, err
 	}
 
-	keywordConditions := make([]string, 0, len(ipGeoAnomalyKeywords))
-	args := make([]interface{}, 0, len(ipGeoAnomalyKeywords))
-	for _, keyword := range ipGeoAnomalyKeywords {
-		keywordConditions = append(keywordConditions, "domestic ILIKE ?")
-		args = append(args, "%"+keyword+"%")
-	}
-	if len(keywordConditions) == 0 {
+	args := make([]interface{}, 0, len(ipGeoAnomalyKeywords)*2)
+	whereClause := buildIPGeoAnomalyWhereClause("domestic", "global", &args)
+	if whereClause == "" {
 		return 0, nil, nil
 	}
 
-	excluded := []string{"未知", "本地", "内网", "本地网络", "待解析", "解析中"}
-	excludedPlaceholders := make([]string, 0, len(excluded))
-	for range excluded {
-		excludedPlaceholders = append(excludedPlaceholders, "?")
-	}
-	for _, value := range excluded {
-		args = append(args, value)
-	}
-
-	whereClause := fmt.Sprintf(
-		`domestic IS NOT NULL AND domestic <> '' AND (%s) AND domestic NOT IN (%s)`,
-		strings.Join(keywordConditions, " OR "),
-		strings.Join(excludedPlaceholders, ", "),
-	)
-
-	query := sqlutil.ReplacePlaceholders(fmt.Sprintf(`SELECT domestic FROM "%s" WHERE %s`, tableName, whereClause))
+	query := sqlutil.ReplacePlaceholders(fmt.Sprintf(`SELECT domestic, global FROM "%s" WHERE %s`, tableName, whereClause))
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		return 0, nil, err
@@ -488,10 +572,11 @@ func (r *Repository) detectIPGeoAnomaliesForWebsite(websiteID string, limit int)
 	samples := make([]string, 0, limit)
 	for rows.Next() {
 		var domestic string
-		if err := rows.Scan(&domestic); err != nil {
+		var global string
+		if err := rows.Scan(&domestic, &global); err != nil {
 			return 0, nil, err
 		}
-		if !isIPGeoAnomalyLabel(domestic) {
+		if !isIPGeoAnomalyLabel(domestic, global) {
 			continue
 		}
 		count++
@@ -509,8 +594,58 @@ var ipGeoAnomalyKeywords = []string{
 	"电信", "联通", "移动", "铁通", "广电", "网通", "教育网", "长城宽带", "有线", "鹏博士", "阿里",
 }
 
-func isIPGeoAnomalyLabel(value string) bool {
+func buildIPGeoAnomalyWhereClause(domesticColumn, globalColumn string, args *[]interface{}) string {
+	keywordConditions := make([]string, 0, len(ipGeoAnomalyKeywords))
+	for _, keyword := range ipGeoAnomalyKeywords {
+		keywordConditions = append(keywordConditions, fmt.Sprintf("%s ILIKE ?", domesticColumn))
+		*args = append(*args, "%"+keyword+"%")
+	}
+	if len(keywordConditions) == 0 {
+		return ""
+	}
+
+	excluded := []string{"未知", "本地", "内网", "本地网络", "待解析", "解析中"}
+	excludedPlaceholders := make([]string, 0, len(excluded))
+	for range excluded {
+		excludedPlaceholders = append(excludedPlaceholders, "?")
+	}
+	for _, value := range excluded {
+		*args = append(*args, value)
+	}
+
+	chinaConditions := []string{
+		fmt.Sprintf("%s = ?", globalColumn),
+		fmt.Sprintf("LOWER(%s) = ?", globalColumn),
+	}
+	*args = append(*args, "中国", "china")
+
+	return fmt.Sprintf(
+		`%s IS NOT NULL AND %s <> '' AND (%s) AND %s NOT IN (%s) AND (%s)`,
+		domesticColumn,
+		domesticColumn,
+		strings.Join(keywordConditions, " OR "),
+		domesticColumn,
+		strings.Join(excludedPlaceholders, ", "),
+		strings.Join(chinaConditions, " OR "),
+	)
+}
+
+func isChinaGlobalLabel(value string) bool {
 	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return false
+	}
+	if trimmed == "中国" {
+		return true
+	}
+	return strings.EqualFold(trimmed, "china")
+}
+
+func isIPGeoAnomalyLabel(domestic, global string) bool {
+	if !isChinaGlobalLabel(global) {
+		return false
+	}
+	trimmed := strings.TrimSpace(domestic)
 	if trimmed == "" {
 		return false
 	}
@@ -980,6 +1115,120 @@ func (r *Repository) UpdateIPGeoLocations(
 		}
 	}
 	return nil
+}
+
+func (r *Repository) MarkIPGeoPendingForWebsite(
+	websiteID string,
+	ips []string,
+	pendingLabel string,
+) (err error) {
+	if len(ips) == 0 {
+		return nil
+	}
+	logTable := fmt.Sprintf("%s_nginx_logs", websiteID)
+	exists, err := r.tableExists(logTable)
+	if err != nil || !exists {
+		return err
+	}
+
+	unique := make([]string, 0, len(ips))
+	seen := make(map[string]struct{}, len(ips))
+	for _, raw := range ips {
+		ip := strings.TrimSpace(raw)
+		if ip == "" {
+			continue
+		}
+		if _, ok := seen[ip]; ok {
+			continue
+		}
+		seen[ip] = struct{}{}
+		unique = append(unique, ip)
+	}
+	if len(unique) == 0 {
+		return nil
+	}
+	sort.Strings(unique)
+
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	dims, err := prepareDimStatements(tx, websiteID)
+	if err != nil {
+		return err
+	}
+	defer dims.Close()
+
+	ipIDs, err := fetchIPIDs(tx, websiteID, unique)
+	if err != nil {
+		return err
+	}
+	if len(ipIDs) == 0 {
+		return tx.Commit()
+	}
+
+	cache := newDimCaches()
+	pendingKey := locationCacheKey(pendingLabel, pendingLabel)
+	pendingID, err := getOrCreateDimID(
+		cache.location,
+		dims.insertLocation,
+		dims.selectLocation,
+		pendingKey,
+		pendingLabel,
+		pendingLabel,
+	)
+	if err != nil {
+		return err
+	}
+
+	updateLogsStmt, err := tx.Prepare(sqlutil.ReplacePlaceholders(fmt.Sprintf(
+		`UPDATE "%s" SET location_id = ? WHERE ip_id = ?`,
+		logTable,
+	)))
+	if err != nil {
+		return err
+	}
+	defer updateLogsStmt.Close()
+
+	sessionTable := fmt.Sprintf("%s_sessions", websiteID)
+	sessionExists, err := r.tableExists(sessionTable)
+	if err != nil {
+		return err
+	}
+	var updateSessionsStmt *sql.Stmt
+	if sessionExists {
+		updateSessionsStmt, err = tx.Prepare(sqlutil.ReplacePlaceholders(fmt.Sprintf(
+			`UPDATE "%s" SET location_id = ? WHERE ip_id = ?`,
+			sessionTable,
+		)))
+		if err != nil {
+			return err
+		}
+		defer updateSessionsStmt.Close()
+	}
+
+	for _, ip := range unique {
+		ipID, ok := ipIDs[ip]
+		if !ok {
+			continue
+		}
+		if _, err := updateLogsStmt.Exec(pendingID, ipID); err != nil {
+			return err
+		}
+		if updateSessionsStmt != nil {
+			if _, err := updateSessionsStmt.Exec(pendingID, ipID); err != nil {
+				return err
+			}
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (r *Repository) updateIPGeoLocationsForWebsite(

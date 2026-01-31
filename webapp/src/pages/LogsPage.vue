@@ -383,20 +383,47 @@
     <Dialog
       v-model:visible="ipGeoIssueVisible"
       modal
-      :closable="false"
-      :dismissableMask="false"
+      :closable="!ipGeoIssueFixLoading"
+      :dismissableMask="!ipGeoIssueFixLoading"
       class="reparse-dialog ip-geo-dialog"
       :header="t('logs.ipGeoIssueTitle')"
     >
       <div class="reparse-dialog-body">
         <p>{{ t('logs.ipGeoIssueBody', { name: currentWebsiteLabel, count: ipGeoIssueCount }) }}</p>
-        <ul v-if="ipGeoIssueSamples.length" class="ip-geo-samples">
+        <div v-if="ipGeoIssueRows.length" class="ip-geo-issue-list">
+          <DataTable
+            :value="ipGeoIssueRows"
+            v-model:selection="ipGeoIssueSelection"
+            dataKey="id"
+            scrollable
+            scrollHeight="320px"
+            class="ip-geo-issue-table"
+            ref="ipGeoIssueTableRef"
+          >
+            <Column selectionMode="multiple" headerStyle="width: 3rem" />
+            <Column field="time" :header="t('logs.time')" />
+            <Column field="ipDisplay" :header="t('common.ip')" />
+            <Column field="location" :header="t('common.location')" />
+            <Column field="request" :header="t('logs.request')" />
+          </DataTable>
+        </div>
+        <ul v-else-if="ipGeoIssueSamples.length" class="ip-geo-samples">
           <li v-for="sample in ipGeoIssueSamples" :key="sample">{{ sample }}</li>
         </ul>
+        <p v-else class="reparse-dialog-note">{{ t('logs.ipGeoIssueEmptyList') }}</p>
+        <p v-if="ipGeoIssueHasMore" class="reparse-dialog-note">{{ t('logs.ipGeoIssueScrollHint') }}</p>
+        <p v-if="ipGeoIssueLoadingMore" class="reparse-dialog-note">{{ t('logs.ipGeoIssueLoadingMore') }}</p>
         <p class="reparse-dialog-note">{{ t('logs.ipGeoIssueNote') }}</p>
         <p v-if="ipGeoIssueError" class="reparse-dialog-error">{{ ipGeoIssueError }}</p>
       </div>
       <template #footer>
+        <Button
+          text
+          severity="secondary"
+          :label="t('logs.ipGeoIssueCancel')"
+          :disabled="ipGeoIssueFixLoading"
+          @click="ipGeoIssueVisible = false"
+        />
         <Button
           severity="danger"
           :label="t('logs.ipGeoIssueConfirm')"
@@ -423,7 +450,7 @@ import {
   reparseLogs,
   repairIPGeoAnomaly,
 } from '@/api';
-import type { WebsiteInfo } from '@/api/types';
+import type { IPGeoAnomalyLog, WebsiteInfo } from '@/api/types';
 import { formatTraffic, getUserPreference, saveUserPreference } from '@/utils';
 import { formatBrowserLabel, formatDeviceLabel, formatLocationLabel, formatOSLabel, formatRefererLabel } from '@/i18n/mappings';
 import { normalizeLocale } from '@/i18n';
@@ -443,6 +470,15 @@ type LogRow = {
   os: string;
   device: string;
   pageview: boolean;
+};
+
+type IPGeoIssueRow = {
+  id: number;
+  time: string;
+  ip: string;
+  ipDisplay: string;
+  location: string;
+  request: string;
 };
 
 type LogRowClickEvent = {
@@ -482,7 +518,15 @@ const ipGeoIssueFixLoading = ref(false);
 const ipGeoIssueError = ref('');
 const ipGeoIssueCount = ref(0);
 const ipGeoIssueSamples = ref<string[]>([]);
+const ipGeoIssueLogs = ref<IPGeoAnomalyLog[]>([]);
+const ipGeoIssueSelection = ref<IPGeoIssueRow[]>([]);
 const ipGeoIssueChecked = new Set<string>();
+const ipGeoIssuePageSize = 50;
+const ipGeoIssuePage = ref(1);
+const ipGeoIssueHasMore = ref(false);
+const ipGeoIssueLoadingMore = ref(false);
+const ipGeoIssueTableRef = ref<InstanceType<typeof DataTable> | null>(null);
+let ipGeoIssueScrollHandler: ((event: Event) => void) | null = null;
 const demoMode = inject<{ value: boolean } | null>('demoMode', null);
 const migrationRequired = inject<{ value: boolean } | null>('migrationRequired', null);
 const migrationAckKey = 'pgMigrationAck';
@@ -814,6 +858,28 @@ const logs = computed(() => {
   });
 });
 
+const ipGeoIssueRows = computed<IPGeoIssueRow[]>(() => {
+  const emptyLabel = t('common.none');
+  return ipGeoIssueLogs.value.map((log) => {
+    const time = log.time || emptyLabel;
+    const rawIP = log.ip || '';
+    const ipDisplay = rawIP || emptyLabel;
+    const locationRaw = log.domestic_location || log.global_location || '';
+    const location = formatLocationLabel(locationRaw, currentLocale.value, t) || emptyLabel;
+    const method = log.method || '';
+    const url = log.url || '';
+    const requestText = `${method} ${url}`.trim() || emptyLabel;
+    return {
+      id: log.id,
+      time,
+      ip: rawIP,
+      ipDisplay,
+      location,
+      request: requestText,
+    };
+  });
+});
+
 onMounted(() => {
   initPreferences();
   loadWebsites();
@@ -821,6 +887,15 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopProgressPolling();
+  unbindIPGeoIssueScroll();
+});
+
+watch(ipGeoIssueVisible, (visible) => {
+  if (visible) {
+    setTimeout(() => bindIPGeoIssueScroll(), 0);
+  } else {
+    unbindIPGeoIssueScroll();
+  }
 });
 
 watch(currentWebsiteId, (value) => {
@@ -947,12 +1022,24 @@ async function checkIPGeoIssue() {
   ipGeoIssueLoading.value = true;
   ipGeoIssueError.value = '';
   try {
-    const result = await fetchIPGeoAnomaly(currentWebsiteId.value);
+    const result = await fetchIPGeoAnomaly(currentWebsiteId.value, {
+      page: 1,
+      pageSize: ipGeoIssuePageSize,
+    });
     ipGeoIssueChecked.add(currentWebsiteId.value);
     if (result?.has_issue) {
       ipGeoIssueCount.value = result.count || 0;
       ipGeoIssueSamples.value = result.samples || [];
+      ipGeoIssueLogs.value = result.logs || [];
+      ipGeoIssueSelection.value = [...ipGeoIssueRows.value];
+      ipGeoIssuePage.value = 1;
+      ipGeoIssueHasMore.value = (result.logs || []).length === ipGeoIssuePageSize;
       ipGeoIssueVisible.value = true;
+    } else {
+      ipGeoIssueLogs.value = [];
+      ipGeoIssueSelection.value = [];
+      ipGeoIssuePage.value = 1;
+      ipGeoIssueHasMore.value = false;
     }
   } catch (error) {
     console.debug('检测 IP 归属地异常失败:', error);
@@ -1110,11 +1197,20 @@ async function confirmIPGeoRepair() {
   if (!currentWebsiteId.value || ipGeoIssueFixLoading.value) {
     return;
   }
+  if (ipGeoIssueSelection.value.length === 0) {
+    ipGeoIssueError.value = t('logs.ipGeoIssueEmpty');
+    return;
+  }
   ipGeoIssueFixLoading.value = true;
   ipGeoIssueError.value = '';
   try {
-    await repairIPGeoAnomaly(currentWebsiteId.value);
+    const ips = Array.from(
+      new Set(ipGeoIssueSelection.value.map((row) => row.ip).filter((ip) => Boolean(ip)))
+    );
+    await repairIPGeoAnomaly(currentWebsiteId.value, ips);
     ipGeoIssueVisible.value = false;
+    ipGeoIssueLogs.value = [];
+    ipGeoIssueSelection.value = [];
     currentPage.value = 1;
     await loadLogs();
   } catch (error) {
@@ -1126,6 +1222,85 @@ async function confirmIPGeoRepair() {
   } finally {
     ipGeoIssueFixLoading.value = false;
   }
+}
+
+async function loadMoreIPGeoIssues() {
+  if (!currentWebsiteId.value || ipGeoIssueLoadingMore.value || !ipGeoIssueHasMore.value) {
+    return;
+  }
+  ipGeoIssueLoadingMore.value = true;
+  try {
+    const nextPage = ipGeoIssuePage.value + 1;
+    const result = await fetchIPGeoAnomaly(currentWebsiteId.value, {
+      page: nextPage,
+      pageSize: ipGeoIssuePageSize,
+    });
+    const newLogs = result.logs || [];
+    if (newLogs.length > 0) {
+      const previousCount = ipGeoIssueLogs.value.length;
+      ipGeoIssueLogs.value = [...ipGeoIssueLogs.value, ...newLogs];
+      const newRows = ipGeoIssueRows.value.slice(previousCount);
+      ipGeoIssueSelection.value = mergeIssueSelections(ipGeoIssueSelection.value, newRows);
+    }
+    ipGeoIssuePage.value = nextPage;
+    ipGeoIssueHasMore.value = newLogs.length === ipGeoIssuePageSize;
+  } catch (error) {
+    console.debug('加载更多异常日志失败:', error);
+  } finally {
+    ipGeoIssueLoadingMore.value = false;
+  }
+}
+
+function mergeIssueSelections(existing: IPGeoIssueRow[], additions: IPGeoIssueRow[]) {
+  if (additions.length === 0) {
+    return existing;
+  }
+  const seen = new Set(existing.map((row) => row.id));
+  const merged = existing.slice();
+  for (const row of additions) {
+    if (seen.has(row.id)) {
+      continue;
+    }
+    seen.add(row.id);
+    merged.push(row);
+  }
+  return merged;
+}
+
+function bindIPGeoIssueScroll() {
+  if (ipGeoIssueScrollHandler || !ipGeoIssueTableRef.value) {
+    return;
+  }
+  const wrapper = ipGeoIssueTableRef.value.$el?.querySelector?.('.p-datatable-wrapper') as
+    | HTMLElement
+    | undefined;
+  if (!wrapper) {
+    return;
+  }
+  ipGeoIssueScrollHandler = () => {
+    if (!ipGeoIssueHasMore.value || ipGeoIssueLoadingMore.value) {
+      return;
+    }
+    const threshold = 40;
+    if (wrapper.scrollTop + wrapper.clientHeight >= wrapper.scrollHeight - threshold) {
+      loadMoreIPGeoIssues();
+    }
+  };
+  wrapper.addEventListener('scroll', ipGeoIssueScrollHandler);
+}
+
+function unbindIPGeoIssueScroll() {
+  if (!ipGeoIssueScrollHandler || !ipGeoIssueTableRef.value) {
+    ipGeoIssueScrollHandler = null;
+    return;
+  }
+  const wrapper = ipGeoIssueTableRef.value.$el?.querySelector?.('.p-datatable-wrapper') as
+    | HTMLElement
+    | undefined;
+  if (wrapper) {
+    wrapper.removeEventListener('scroll', ipGeoIssueScrollHandler);
+  }
+  ipGeoIssueScrollHandler = null;
 }
 
 function jumpToPage() {
@@ -1609,6 +1784,20 @@ function nextPage() {
   padding-left: 18px;
   font-size: 13px;
   color: var(--muted);
+}
+
+.ip-geo-issue-list {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ip-geo-issue-table {
+  font-size: 13px;
+}
+
+.ip-geo-issue-table :deep(.p-datatable-thead > tr > th) {
+  font-weight: 600;
 }
 
 .reparse-dialog-error {

@@ -133,6 +133,18 @@ export interface IPGeoAnomalyResponse {
   has_issue: boolean;
   count: number;
   samples?: string[];
+  logs?: IPGeoAnomalyLog[];
+}
+
+export interface IPGeoAnomalyLog {
+  id: number;
+  ip: string;
+  timestamp: number;
+  time?: string;
+  method?: string;
+  url?: string;
+  domestic_location?: string;
+  global_location?: string;
 }
 
 export type ApiResponse<T> = T;

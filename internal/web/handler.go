@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -236,6 +237,22 @@ func SetupRoutes(
 			})
 			return
 		}
+		page := 1
+		pageSize := 50
+		if rawPage := strings.TrimSpace(c.Query("page")); rawPage != "" {
+			if parsed, err := strconv.Atoi(rawPage); err == nil && parsed > 0 {
+				page = parsed
+			}
+		}
+		if rawPageSize := strings.TrimSpace(c.Query("pageSize")); rawPageSize != "" {
+			if parsed, err := strconv.Atoi(rawPageSize); err == nil && parsed > 0 {
+				pageSize = parsed
+			}
+		} else if rawLimit := strings.TrimSpace(c.Query("limit")); rawLimit != "" {
+			if parsed, err := strconv.Atoi(rawLimit); err == nil && parsed > 0 {
+				pageSize = parsed
+			}
+		}
 		count, samples, err := statsFactory.Repo().DetectIPGeoAnomalies(websiteID, 5)
 		if err != nil {
 			logrus.WithError(err).Error("检测 IP 归属地异常失败")
@@ -244,10 +261,19 @@ func SetupRoutes(
 			})
 			return
 		}
+		logs, err := statsFactory.Repo().FetchIPGeoAnomalyLogs(websiteID, page, pageSize)
+		if err != nil {
+			logrus.WithError(err).Error("读取 IP 归属地异常日志失败")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("读取异常日志失败: %v", err),
+			})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"has_issue": count > 0,
 			"count":     count,
 			"samples":   samples,
+			"logs":      logs,
 		})
 	})
 
@@ -259,7 +285,8 @@ func SetupRoutes(
 			return
 		}
 		type repairRequest struct {
-			ID string `json:"id"`
+			ID  string   `json:"id"`
+			IPs []string `json:"ips"`
 		}
 		var req repairRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -283,32 +310,45 @@ func SetupRoutes(
 		}
 
 		repo := statsFactory.Repo()
-		if err := repo.ClearIPGeoCache(); err != nil {
-			logrus.WithError(err).Error("清空 IP 归属地缓存失败")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("清空 IP 归属地缓存失败: %v", err),
-			})
-			return
-		}
-		if err := repo.ClearIPGeoPending(); err != nil {
-			logrus.WithError(err).Error("清空 IP 归属地待解析队列失败")
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("清空 IP 归属地待解析队列失败: %v", err),
-			})
-			return
-		}
-		enrich.ResetIPGeoCache()
-
-		if err := logParser.TriggerReparse(websiteID); err != nil {
-			if errors.Is(err, ingest.ErrParsingInProgress) {
-				c.JSON(http.StatusConflict, gin.H{
-					"error": err.Error(),
-				})
-				return
+		ips := make([]string, 0, len(req.IPs))
+		seen := make(map[string]struct{}, len(req.IPs))
+		for _, raw := range req.IPs {
+			ip := strings.TrimSpace(raw)
+			if ip == "" {
+				continue
 			}
-			logrus.WithError(err).Error("触发重新解析失败")
+			if _, ok := seen[ip]; ok {
+				continue
+			}
+			seen[ip] = struct{}{}
+			ips = append(ips, ip)
+		}
+		if len(ips) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "请选择需要处理的异常日志",
+			})
+			return
+		}
+
+		if err := repo.DeleteIPGeoCache(ips); err != nil {
+			logrus.WithError(err).Error("删除 IP 归属地缓存失败")
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": fmt.Sprintf("重新解析失败: %v", err),
+				"error": fmt.Sprintf("删除 IP 归属地缓存失败: %v", err),
+			})
+			return
+		}
+		enrich.DeleteIPGeoCacheEntries(ips)
+		if err := repo.MarkIPGeoPendingForWebsite(websiteID, ips, "待解析"); err != nil {
+			logrus.WithError(err).Error("标记 IP 归属地待解析失败")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("标记待解析失败: %v", err),
+			})
+			return
+		}
+		if err := repo.UpsertIPGeoPending(ips); err != nil {
+			logrus.WithError(err).Error("补充 IP 归属地待解析队列失败")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("补充待解析队列失败: %v", err),
 			})
 			return
 		}
