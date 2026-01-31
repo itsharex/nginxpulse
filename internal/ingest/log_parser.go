@@ -1363,7 +1363,29 @@ func (p *LogParser) enqueueBatchIPGeo(batch []store.NginxLogRecord) {
 	if len(unique) == 0 {
 		return
 	}
-	if err := p.repo.UpsertIPGeoPending(unique); err != nil {
+
+	cached := make(map[string]store.IPGeoCacheEntry)
+	if entries, err := p.repo.GetIPGeoCache(unique); err != nil {
+		logrus.WithError(err).Warn("读取 IP 归属地缓存失败")
+	} else if len(entries) > 0 {
+		cached = entries
+		if err := p.repo.UpdateIPGeoLocations(cached, pendingLocationLabel); err != nil {
+			logrus.WithError(err).Warn("回填缓存中的 IP 归属地失败")
+		}
+	}
+
+	missing := make([]string, 0, len(unique))
+	for _, ip := range unique {
+		if _, ok := cached[ip]; ok {
+			continue
+		}
+		missing = append(missing, ip)
+	}
+	if len(missing) == 0 {
+		return
+	}
+
+	if err := p.repo.UpsertIPGeoPending(missing); err != nil {
 		logrus.WithError(err).Warn("写入 IP 归属地待解析队列失败")
 	}
 }

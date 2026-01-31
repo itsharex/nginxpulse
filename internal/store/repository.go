@@ -313,6 +313,51 @@ func (r *Repository) CountIPGeoPending() (int64, error) {
 	return total, nil
 }
 
+func (r *Repository) FetchPendingIPGeoFromLogs(websiteID, pendingLabel string, limit int) ([]string, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+	logTable := fmt.Sprintf("%s_nginx_logs", websiteID)
+	exists, err := r.tableExists(logTable)
+	if err != nil || !exists {
+		return nil, err
+	}
+	ipTable := fmt.Sprintf("%s_dim_ip", websiteID)
+	locationTable := fmt.Sprintf("%s_dim_location", websiteID)
+
+	query := fmt.Sprintf(
+		`SELECT DISTINCT ip.ip
+         FROM "%s" AS l
+         JOIN "%s" AS ip ON l.ip_id = ip.id
+         JOIN "%s" AS loc ON l.location_id = loc.id
+         WHERE loc.domestic = ? AND loc.global = ?
+         LIMIT ?`,
+		logTable, ipTable, locationTable,
+	)
+	rows, err := r.db.Query(sqlutil.ReplacePlaceholders(query), pendingLabel, pendingLabel, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ips := make([]string, 0, limit)
+	for rows.Next() {
+		var ip string
+		if err := rows.Scan(&ip); err != nil {
+			return nil, err
+		}
+		ip = strings.TrimSpace(ip)
+		if ip == "" {
+			continue
+		}
+		ips = append(ips, ip)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return ips, nil
+}
+
 func (r *Repository) UpsertIPGeoCache(entries map[string]IPGeoCacheEntry) error {
 	if len(entries) == 0 {
 		return nil
@@ -1646,59 +1691,59 @@ func applyAggUpdates(aggs *aggStatements, batch *aggBatch) error {
 
 	// 旧实现（保留注释，便于回溯）：
 	/*
-	for bucket, counts := range batch.hourly {
-		if counts == nil {
-			continue
-		}
-		if _, err := aggs.upsertHourly.Exec(
-			bucket,
-			counts.pv,
-			counts.traffic,
-			counts.s2xx,
-			counts.s3xx,
-			counts.s4xx,
-			counts.s5xx,
-			counts.other,
-		); err != nil {
-			return err
-		}
-	}
-
-	for day, counts := range batch.daily {
-		if counts == nil {
-			continue
-		}
-		if _, err := aggs.upsertDaily.Exec(
-			day,
-			counts.pv,
-			counts.traffic,
-			counts.s2xx,
-			counts.s3xx,
-			counts.s4xx,
-			counts.s5xx,
-			counts.other,
-		); err != nil {
-			return err
-		}
-	}
-
-	for bucket, ips := range batch.hourlyIPs {
-		for ipID := range ips {
-			if _, err := aggs.insertHourlyIP.Exec(bucket, ipID); err != nil {
+		for bucket, counts := range batch.hourly {
+			if counts == nil {
+				continue
+			}
+			if _, err := aggs.upsertHourly.Exec(
+				bucket,
+				counts.pv,
+				counts.traffic,
+				counts.s2xx,
+				counts.s3xx,
+				counts.s4xx,
+				counts.s5xx,
+				counts.other,
+			); err != nil {
 				return err
 			}
 		}
-	}
 
-	for day, ips := range batch.dailyIPs {
-		for ipID := range ips {
-			if _, err := aggs.insertDailyIP.Exec(day, ipID); err != nil {
+		for day, counts := range batch.daily {
+			if counts == nil {
+				continue
+			}
+			if _, err := aggs.upsertDaily.Exec(
+				day,
+				counts.pv,
+				counts.traffic,
+				counts.s2xx,
+				counts.s3xx,
+				counts.s4xx,
+				counts.s5xx,
+				counts.other,
+			); err != nil {
 				return err
 			}
 		}
-	}
 
-	return nil
+		for bucket, ips := range batch.hourlyIPs {
+			for ipID := range ips {
+				if _, err := aggs.insertHourlyIP.Exec(bucket, ipID); err != nil {
+					return err
+				}
+			}
+		}
+
+		for day, ips := range batch.dailyIPs {
+			for ipID := range ips {
+				if _, err := aggs.insertDailyIP.Exec(day, ipID); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
 	*/
 }
 

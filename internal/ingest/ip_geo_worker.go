@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/likaia/nginxpulse/internal/config"
 	"github.com/likaia/nginxpulse/internal/enrich"
 	"github.com/likaia/nginxpulse/internal/store"
 	"github.com/sirupsen/logrus"
@@ -87,7 +88,7 @@ func (p *LogParser) ProcessPendingIPGeo(limit int) int {
 	}
 	if pendingTotal <= 0 {
 		resetIPGeoProgress()
-		return 0
+		return p.recoverPendingIPGeoFromLogs(limit)
 	}
 	reportIPGeoPendingCount(pendingTotal)
 	touchIPGeoProgressStart()
@@ -207,4 +208,67 @@ func (p *LogParser) ProcessPendingIPGeo(limit int) int {
 	}
 
 	return len(resolved)
+}
+
+func (p *LogParser) recoverPendingIPGeoFromLogs(limit int) int {
+	if p == nil || p.repo == nil || p.demoMode {
+		return 0
+	}
+	if limit <= 0 {
+		limit = defaultIPGeoResolveBatch
+	}
+
+	pending := make([]string, 0, limit)
+	seen := make(map[string]struct{}, limit)
+	for _, websiteID := range config.GetAllWebsiteIDs() {
+		if len(pending) >= limit {
+			break
+		}
+		ips, err := p.repo.FetchPendingIPGeoFromLogs(websiteID, pendingLocationLabel, limit-len(pending))
+		if err != nil {
+			logrus.WithError(err).Warn("从日志中提取待解析 IP 失败")
+			continue
+		}
+		for _, ip := range ips {
+			if ip == "" {
+				continue
+			}
+			if _, ok := seen[ip]; ok {
+				continue
+			}
+			seen[ip] = struct{}{}
+			pending = append(pending, ip)
+			if len(pending) >= limit {
+				break
+			}
+		}
+	}
+	if len(pending) == 0 {
+		return 0
+	}
+
+	cached := make(map[string]store.IPGeoCacheEntry)
+	if entries, err := p.repo.GetIPGeoCache(pending); err != nil {
+		logrus.WithError(err).Warn("读取 IP 归属地缓存失败")
+	} else if len(entries) > 0 {
+		cached = entries
+		if err := p.repo.UpdateIPGeoLocations(cached, pendingLocationLabel); err != nil {
+			logrus.WithError(err).Warn("回填缓存中的 IP 归属地失败")
+		}
+	}
+
+	missing := make([]string, 0, len(pending))
+	for _, ip := range pending {
+		if _, ok := cached[ip]; ok {
+			continue
+		}
+		missing = append(missing, ip)
+	}
+	if len(missing) > 0 {
+		if err := p.repo.UpsertIPGeoPending(missing); err != nil {
+			logrus.WithError(err).Warn("补充 IP 归属地待解析队列失败")
+		}
+	}
+
+	return len(cached)
 }
