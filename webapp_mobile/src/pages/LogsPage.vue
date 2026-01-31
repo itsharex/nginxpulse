@@ -54,17 +54,22 @@
             <van-cell v-for="item in logs" :key="item.key" :class="['mobile-log-cell', item.statusType]">
               <template #title>
                 <div class="mobile-log-item">
-                  <div class="mobile-log-title">
-                    <span class="method-text">{{ item.method }}</span>
-                    <span>{{ item.path }}</span>
+                  <div class="mobile-log-header">
+                    <span class="method-pill">{{ item.method }}</span>
+                    <van-text-ellipsis class="log-path" :content="item.path" :rows="2" />
                   </div>
-                  <div class="mobile-log-meta">{{ item.time }} · {{ item.ip }} · {{ item.location }}</div>
+                  <div class="mobile-log-meta">
+                    <span class="meta-item">{{ item.time }}</span>
+                    <span class="meta-dot">·</span>
+                    <span class="meta-item">{{ item.ip }}</span>
+                  </div>
+                  <div class="mobile-log-location">{{ item.location }}</div>
                 </div>
               </template>
               <template #value>
                 <div class="mobile-tag-group">
-                  <van-tag :type="item.statusType">{{ item.statusCode }}</van-tag>
-                  <van-tag v-if="item.pageview" plain type="primary">PV</van-tag>
+                  <van-tag :type="item.statusType" round>{{ item.statusCode }}</van-tag>
+                  <van-tag v-if="item.pageview" plain type="primary" round>PV</van-tag>
                 </div>
               </template>
             </van-cell>
