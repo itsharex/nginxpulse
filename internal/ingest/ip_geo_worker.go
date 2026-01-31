@@ -1,8 +1,10 @@
 package ingest
 
 import (
+	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/likaia/nginxpulse/internal/config"
 	"github.com/likaia/nginxpulse/internal/enrich"
@@ -13,6 +15,7 @@ import (
 const (
 	pendingLocationLabel     = "待解析"
 	defaultIPGeoResolveBatch = 1000
+	ipGeoFailureCooldown     = 12 * time.Hour
 )
 
 var (
@@ -97,7 +100,8 @@ func (p *LogParser) ProcessPendingIPGeo(limit int) int {
 		limit = defaultIPGeoResolveBatch
 	}
 
-	pending, err := p.repo.FetchIPGeoPending(limit)
+	cutoff := time.Now().Add(-ipGeoFailureCooldown)
+	pending, err := p.repo.FetchIPGeoPendingWithCooldown(limit, cutoff)
 	if err != nil {
 		logrus.WithError(err).Warn("读取 IP 归属地待解析队列失败")
 		return 0
@@ -113,20 +117,31 @@ func (p *LogParser) ProcessPendingIPGeo(limit int) int {
 	}
 
 	missing := make([]string, 0, len(pending))
+	unknownCached := make([]string, 0)
 	for _, ip := range pending {
 		ip = strings.TrimSpace(ip)
 		if ip == "" {
 			continue
 		}
 		if entry, ok := cached[ip]; ok {
-			results[ip] = entry
-			continue
+			if entry.Domestic == "未知" && entry.Global == "未知" {
+				unknownCached = append(unknownCached, ip)
+			} else {
+				results[ip] = entry
+				continue
+			}
 		}
 		missing = append(missing, ip)
 	}
+	if len(unknownCached) > 0 {
+		if err := p.repo.DeleteIPGeoCache(unknownCached); err != nil {
+			logrus.WithError(err).Warn("清理未知 IP 归属地缓存失败")
+		}
+		enrich.DeleteIPGeoCacheEntries(unknownCached)
+	}
 
 	if len(missing) > 0 {
-		fetched, fetchErr := enrich.GetIPLocationBatch(missing)
+		fetched, failed, fetchErr := enrich.GetIPLocationBatch(missing)
 		if fetchErr != nil {
 			logrus.WithError(fetchErr).Warn("IP 归属地远端查询失败，将保留待解析 IP")
 		}
@@ -163,10 +178,69 @@ func (p *LogParser) ProcessPendingIPGeo(limit int) int {
 			if _, ok := results[ip]; ok {
 				continue
 			}
+			if fetchErr != nil {
+				continue
+			}
+			if _, isFailed := failed[ip]; isFailed {
+				continue
+			}
 			results[ip] = store.IPGeoCacheEntry{
 				Domestic: "未知",
 				Global:   "未知",
 				Source:   "unknown",
+			}
+		}
+
+		if p.repo != nil && (fetchErr != nil || len(failed) > 0) {
+			failureRecords := make(map[string]string, len(failed))
+			for ip, reason := range failed {
+				failureRecords[ip] = reason
+			}
+			if fetchErr != nil {
+				for _, ip := range pending {
+					ip = strings.TrimSpace(ip)
+					if ip == "" {
+						continue
+					}
+					if _, ok := results[ip]; ok {
+						continue
+					}
+					if _, ok := failureRecords[ip]; ok {
+						continue
+					}
+					failureRecords[ip] = "request_error"
+				}
+			}
+			detail := ""
+			if fetchErr != nil {
+				detail = fetchErr.Error()
+			}
+			if len(failureRecords) > 0 {
+				if err := p.repo.InsertIPGeoAPIFailures(failureRecords, "ip-api", detail, 0); err != nil {
+					logrus.WithError(err).Warn("记录 IP 归属地远端失败失败")
+				}
+				samples := make([]string, 0, 3)
+				for ip := range failureRecords {
+					samples = append(samples, ip)
+					if len(samples) >= 3 {
+						break
+					}
+				}
+				_, err := p.repo.CreateSystemNotification(store.SystemNotification{
+					Level:       "warning",
+					Category:    "ip_geo",
+					Title:       "IP 归属地查询失败",
+					Message:     fmt.Sprintf("远端 IP 归属地查询失败，已记录 %d 个 IP。", len(failureRecords)),
+					Fingerprint: "ip_geo_api_failure",
+					Metadata: map[string]interface{}{
+						"count":   len(failureRecords),
+						"samples": samples,
+						"error":   detail,
+					},
+				})
+				if err != nil {
+					logrus.WithError(err).Warn("写入系统通知失败")
+				}
 			}
 		}
 	} else {
@@ -251,7 +325,12 @@ func (p *LogParser) recoverPendingIPGeoFromLogs(limit int) int {
 	if entries, err := p.repo.GetIPGeoCache(pending); err != nil {
 		logrus.WithError(err).Warn("读取 IP 归属地缓存失败")
 	} else if len(entries) > 0 {
-		cached = entries
+		for ip, entry := range entries {
+			if entry.Domestic == "未知" && entry.Global == "未知" {
+				continue
+			}
+			cached[ip] = entry
+		}
 		if err := p.repo.UpdateIPGeoLocations(cached, pendingLocationLabel); err != nil {
 			logrus.WithError(err).Warn("回填缓存中的 IP 归属地失败")
 		}

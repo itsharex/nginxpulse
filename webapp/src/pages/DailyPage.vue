@@ -21,6 +21,7 @@
         showButtonBar
         :showIcon="true"
       />
+      <SystemNotifications />
       <ThemeToggle />
     </div>
   </header>
@@ -411,6 +412,7 @@ import { normalizeLocale } from '@/i18n';
 import { formatDate, getUserPreference, saveUserPreference } from '@/utils';
 import { Chart } from '@/utils/chartjs';
 import ParsingOverlay from '@/components/ParsingOverlay.vue';
+import SystemNotifications from '@/components/SystemNotifications.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
 import WebsiteSelect from '@/components/WebsiteSelect.vue';
 

@@ -183,4 +183,39 @@ export interface LogsExportListResponse {
   has_more?: boolean;
 }
 
+export interface IPGeoAPIFailure {
+  id: number;
+  ip: string;
+  source: string;
+  reason: string;
+  error?: string;
+  status_code?: number;
+  created_at?: string;
+}
+
+export interface IPGeoAPIFailureListResponse {
+  failures: IPGeoAPIFailure[];
+  has_more?: boolean;
+}
+
+export interface SystemNotification {
+  id: number;
+  level: string;
+  category: string;
+  title: string;
+  message: string;
+  fingerprint?: string;
+  occurrences?: number;
+  created_at?: string;
+  last_occurred_at?: string;
+  read_at?: string | null;
+  metadata?: Record<string, any>;
+}
+
+export interface SystemNotificationListResponse {
+  notifications: SystemNotification[];
+  has_more?: boolean;
+  unread_count?: number;
+}
+
 export type ApiResponse<T> = T;

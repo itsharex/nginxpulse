@@ -236,10 +236,11 @@ func GetIPLocation(ip string) (string, string, error) {
 }
 
 // GetIPLocationBatch 批量获取 IP 的地理位置信息（优先本地）
-func GetIPLocationBatch(ips []string) (map[string]IPLocation, error) {
+// failures 返回远端 API 未能查询到的 IP 及原因
+func GetIPLocationBatch(ips []string) (map[string]IPLocation, map[string]string, error) {
 	results := make(map[string]IPLocation, len(ips))
 	if len(ips) == 0 {
-		return results, nil
+		return results, map[string]string{}, nil
 	}
 
 	unique := make([]string, 0, len(ips))
@@ -297,14 +298,16 @@ func GetIPLocationBatch(ips []string) (map[string]IPLocation, error) {
 	}
 
 	if len(toQuery) == 0 {
-		return results, nil
+		return results, map[string]string{}, nil
 	}
 
-	remoteResults, remoteErr := queryIPLocationRemoteBatch(toQuery)
+	remoteResults, remoteFailures, remoteErr := queryIPLocationRemoteBatch(toQuery)
 	for _, ip := range toQuery {
-		if entry, ok := remoteResults[ip]; ok && entry.Domestic != "" && entry.Domestic != "未知" && entry.Global != "" && entry.Global != "未知" {
+		if entry, ok := remoteResults[ip]; ok {
 			results[ip] = IPLocation{Domestic: entry.Domestic, Global: entry.Global, Source: "remote"}
-			setCachedLocation(ip, entry.Domestic, entry.Global)
+			if entry.Domestic != "" && entry.Domestic != "未知" && entry.Global != "" && entry.Global != "未知" {
+				setCachedLocation(ip, entry.Domestic, entry.Global)
+			}
 			continue
 		}
 		if fallback, ok := fallbacks[ip]; ok {
@@ -313,15 +316,18 @@ func GetIPLocationBatch(ips []string) (map[string]IPLocation, error) {
 			continue
 		}
 		if remoteErr == nil {
+			if _, failed := remoteFailures[ip]; failed {
+				continue
+			}
 			results[ip] = IPLocation{Domestic: "未知", Global: "未知", Source: "unknown"}
 			setCachedLocation(ip, "未知", "未知")
 		}
 	}
 
 	if len(results) > 0 {
-		return results, nil
+		return results, remoteFailures, remoteErr
 	}
-	return results, remoteErr
+	return results, remoteFailures, remoteErr
 }
 
 func queryIPLocationLocalRegion(ip string, parsedIP net.IP) (string, error) {
@@ -412,9 +418,12 @@ func queryIPLocationLocal(ip string) (string, string, error) {
 
 // 查询 IP 地理位置（远程接口）
 func queryIPLocationRemote(ip string) (string, string, error) {
-	results, err := queryIPLocationRemoteBatch([]string{ip})
+	results, failures, err := queryIPLocationRemoteBatch([]string{ip})
 	if err != nil {
 		return "未知", "未知", err
+	}
+	if reason, ok := failures[ip]; ok && reason != "" {
+		return "未知", "未知", fmt.Errorf("ip-api 查询失败: %s", reason)
 	}
 	entry, ok := results[ip]
 	if !ok {
@@ -423,10 +432,11 @@ func queryIPLocationRemote(ip string) (string, string, error) {
 	return entry.Domestic, entry.Global, nil
 }
 
-func queryIPLocationRemoteBatch(ips []string) (map[string]ipLocationCacheEntry, error) {
+func queryIPLocationRemoteBatch(ips []string) (map[string]ipLocationCacheEntry, map[string]string, error) {
 	results := make(map[string]ipLocationCacheEntry, len(ips))
+	failures := make(map[string]string)
 	if len(ips) == 0 {
-		return results, nil
+		return results, failures, nil
 	}
 
 	client := &http.Client{Timeout: ipAPITimeout}
@@ -453,12 +463,18 @@ func queryIPLocationRemoteBatch(ips []string) (map[string]ipLocationCacheEntry, 
 		requestBody, err := json.Marshal(requestPayload)
 		if err != nil {
 			lastErr = err
+			for _, ip := range batch {
+				failures[ip] = "request_error"
+			}
 			continue
 		}
 
 		req, err := http.NewRequest(http.MethodPost, apiURL, bytes.NewReader(requestBody))
 		if err != nil {
 			lastErr = err
+			for _, ip := range batch {
+				failures[ip] = "request_error"
+			}
 			continue
 		}
 		req.Header.Set("Content-Type", "application/json")
@@ -467,11 +483,17 @@ func queryIPLocationRemoteBatch(ips []string) (map[string]ipLocationCacheEntry, 
 		resp, err := client.Do(req)
 		if err != nil {
 			lastErr = err
+			for _, ip := range batch {
+				failures[ip] = "request_error"
+			}
 			continue
 		}
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			lastErr = fmt.Errorf("ip-api 响应异常: %s", resp.Status)
 			resp.Body.Close()
+			for _, ip := range batch {
+				failures[ip] = "http_status"
+			}
 			continue
 		}
 
@@ -479,6 +501,9 @@ func queryIPLocationRemoteBatch(ips []string) (map[string]ipLocationCacheEntry, 
 		if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
 			lastErr = err
 			resp.Body.Close()
+			for _, ip := range batch {
+				failures[ip] = "decode_error"
+			}
 			continue
 		}
 		resp.Body.Close()
@@ -493,7 +518,7 @@ func queryIPLocationRemoteBatch(ips []string) (map[string]ipLocationCacheEntry, 
 			}
 
 			if item.Status != "" && item.Status != "success" {
-				results[query] = ipLocationCacheEntry{Domestic: "未知", Global: "未知"}
+				failures[query] = "api_fail"
 				continue
 			}
 
@@ -509,7 +534,7 @@ func queryIPLocationRemoteBatch(ips []string) (map[string]ipLocationCacheEntry, 
 		}
 	}
 
-	return results, lastErr
+	return results, failures, lastErr
 }
 
 // 解析 ip2region 返回的地区信息
@@ -662,6 +687,9 @@ func getCachedLocation(ip string) (string, string, bool) {
 	entry, ok := ipGeoCache[ip]
 	ipGeoCacheMu.RUnlock()
 	if !ok {
+		return "", "", false
+	}
+	if entry.Domestic == "未知" && entry.Global == "未知" {
 		return "", "", false
 	}
 	return entry.Domestic, entry.Global, true

@@ -23,6 +23,7 @@
           {{ t('realtime.minutes', { value: option }) }}
         </button>
       </div>
+      <SystemNotifications />
       <ThemeToggle />
     </div>
   </header>
@@ -272,6 +273,7 @@ import { formatBrowserLabel, formatLocationLabel, formatRefererLabel, normalizeD
 import { normalizeLocale } from '@/i18n';
 import { getUserPreference, saveUserPreference } from '@/utils';
 import ParsingOverlay from '@/components/ParsingOverlay.vue';
+import SystemNotifications from '@/components/SystemNotifications.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
 import WebsiteSelect from '@/components/WebsiteSelect.vue';
 

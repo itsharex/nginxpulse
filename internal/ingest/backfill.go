@@ -90,6 +90,7 @@ func (p *LogParser) BackfillHistory(maxDuration time.Duration, maxBytes int64) B
 				processed, entries, err := p.backfillGzipFile(websiteID, filePath, &fileState, budget)
 				if err != nil {
 					logrus.Warnf("回填 gzip 日志文件 %s 失败: %v", filePath, err)
+					p.notifyFileIO(websiteID, filePath, "回填 gzip 日志文件", err)
 				} else {
 					result.ProcessedBytes += processed
 					result.ProcessedEntries += entries
@@ -103,6 +104,7 @@ func (p *LogParser) BackfillHistory(maxDuration time.Duration, maxBytes int64) B
 			if err != nil {
 				if !errors.Is(err, io.EOF) {
 					logrus.Warnf("回填日志文件 %s 失败: %v", filePath, err)
+					p.notifyFileIO(websiteID, filePath, "回填日志文件", err)
 				}
 			}
 			result.ProcessedBytes += processed
@@ -158,6 +160,7 @@ func (p *LogParser) backfillPlainFile(
 		p.markBatchIPGeoPending(batch)
 		if err := p.repo.BatchInsertLogsForWebsite(websiteID, batch); err != nil {
 			logrus.Errorf("批量插入网站 %s 的日志记录失败: %v", websiteID, err)
+			p.notifyDatabaseWrite(websiteID, "回填写入日志批次", err)
 		} else {
 			p.enqueueBatchIPGeo(batch)
 		}

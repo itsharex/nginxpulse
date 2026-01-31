@@ -25,6 +25,7 @@
             optionValue="value"
           />
         </div>
+        <SystemNotifications />
         <ThemeToggle />
       </div>
     </header>
@@ -613,6 +614,7 @@ import type { SimpleSeriesStats, TimeSeriesStats, WebsiteInfo } from '@/api/type
 import { formatTraffic, getUserPreference, saveUserPreference } from '@/utils';
 import { Chart } from '@/utils/chartjs';
 import ParsingOverlay from '@/components/ParsingOverlay.vue';
+import SystemNotifications from '@/components/SystemNotifications.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
 import WebsiteSelect from '@/components/WebsiteSelect.vue';
 import {

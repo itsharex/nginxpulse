@@ -13,6 +13,7 @@
           id="logs-website-selector"
           :label="t('common.website')"
         />
+        <SystemNotifications />
         <ThemeToggle />
       </div>
     </header>
@@ -604,6 +605,7 @@ import type { IPGeoAnomalyLog, LogsExportJob, WebsiteInfo } from '@/api/types';
 import { formatTraffic, getUserPreference, saveUserPreference } from '@/utils';
 import { formatBrowserLabel, formatDeviceLabel, formatLocationLabel, formatOSLabel, formatRefererLabel } from '@/i18n/mappings';
 import { normalizeLocale } from '@/i18n';
+import SystemNotifications from '@/components/SystemNotifications.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
 import WebsiteSelect from '@/components/WebsiteSelect.vue';
 

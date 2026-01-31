@@ -12,7 +12,9 @@ import type {
   LogsExportStartResponse,
   LogsExportStatusResponse,
   LogsExportListResponse,
+  IPGeoAPIFailureListResponse,
   SimpleSeriesStats,
+  SystemNotificationListResponse,
   TimeSeriesStats,
   WebsiteInfo,
   WebsitesResponse,
@@ -95,6 +97,38 @@ export const repairIPGeoAnomaly = async (websiteId: string, ips: string[]): Prom
   });
 };
 
+export const fetchIPGeoFailures = async (
+  page = 1,
+  pageSize = 50,
+  options: { websiteId?: string; reason?: string; keyword?: string } = {}
+): Promise<IPGeoAPIFailureListResponse> => {
+  const response = await client.get<ApiResponse<IPGeoAPIFailureListResponse>>('/api/ip-geo/failures', {
+    params: buildParams({
+      page,
+      pageSize,
+      id: options.websiteId,
+      reason: options.reason,
+      keyword: options.keyword,
+    }),
+  });
+  return response.data;
+};
+
+export const exportIPGeoFailures = async (options: {
+  websiteId?: string;
+  reason?: string;
+  keyword?: string;
+}): Promise<AxiosResponse<Blob>> => {
+  return client.get('/api/ip-geo/failures/export', {
+    params: buildParams({
+      id: options.websiteId,
+      reason: options.reason,
+      keyword: options.keyword,
+    }),
+    responseType: 'blob',
+  });
+};
+
 const fetchStats = async <T>(type: string, params: Record<string, unknown> = {}): Promise<T> => {
   const response = await client.get<ApiResponse<T>>(`/api/stats/${type}`, {
     params: buildParams(params),
@@ -161,6 +195,30 @@ export const fetchRealtimeStats = (
   websiteId: string,
   window: number
 ): Promise<RealtimeStats> => fetchStats('realtime', { id: websiteId, window });
+
+export const fetchSystemNotifications = async (
+  page = 1,
+  pageSize = 20,
+  unreadOnly = false
+): Promise<SystemNotificationListResponse> => {
+  const response = await client.get<ApiResponse<SystemNotificationListResponse>>(
+    '/api/system/notifications',
+    {
+      params: buildParams({ page, pageSize, unreadOnly }),
+    }
+  );
+  return response.data;
+};
+
+export const markSystemNotificationsRead = async (options: {
+  ids?: number[];
+  all?: boolean;
+}): Promise<void> => {
+  await client.post<ApiResponse<{ success: boolean }>>('/api/system/notifications/read', {
+    ids: options.ids || [],
+    all: Boolean(options.all),
+  });
+};
 
 export const fetchLogs = (
   websiteId: string,

@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -44,6 +45,30 @@ type IPGeoAnomalyLog struct {
 	URL              string `json:"url"`
 	DomesticLocation string `json:"domestic_location"`
 	GlobalLocation   string `json:"global_location"`
+}
+
+type IPGeoAPIFailure struct {
+	ID         int64     `json:"id"`
+	IP         string    `json:"ip"`
+	Source     string    `json:"source"`
+	Reason     string    `json:"reason"`
+	Error      string    `json:"error"`
+	StatusCode int       `json:"status_code"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type SystemNotification struct {
+	ID             int64                  `json:"id"`
+	Level          string                 `json:"level"`
+	Category       string                 `json:"category"`
+	Title          string                 `json:"title"`
+	Message        string                 `json:"message"`
+	Fingerprint    string                 `json:"fingerprint"`
+	Occurrences    int                    `json:"occurrences"`
+	CreatedAt      time.Time              `json:"created_at"`
+	LastOccurredAt time.Time              `json:"last_occurred_at"`
+	ReadAt         *time.Time             `json:"read_at,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
 func sanitizeUTF8(s string) string {
@@ -303,6 +328,43 @@ func (r *Repository) FetchIPGeoPending(limit int) ([]string, error) {
 	return ips, nil
 }
 
+func (r *Repository) FetchIPGeoPendingWithCooldown(limit int, cutoff time.Time) ([]string, error) {
+	if limit <= 0 {
+		return nil, nil
+	}
+	if cutoff.IsZero() {
+		return r.FetchIPGeoPending(limit)
+	}
+	rows, err := r.db.Query(
+		sqlutil.ReplacePlaceholders(`SELECT p.ip
+         FROM "ip_geo_pending" AS p
+         WHERE NOT EXISTS (
+             SELECT 1 FROM "ip_geo_api_failures" AS f
+             WHERE f.ip = p.ip AND f.created_at >= ?
+         )
+         ORDER BY p.updated_at ASC
+         LIMIT ?`),
+		cutoff, limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ips := make([]string, 0, limit)
+	for rows.Next() {
+		var ip string
+		if err := rows.Scan(&ip); err != nil {
+			return nil, err
+		}
+		ips = append(ips, ip)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return ips, nil
+}
+
 func (r *Repository) DeleteIPGeoPending(ips []string) error {
 	if len(ips) == 0 {
 		return nil
@@ -460,6 +522,323 @@ func (r *Repository) TrimIPGeoCache(limit int) error {
          )`, excess,
 	)
 	return err
+}
+
+func (r *Repository) InsertIPGeoAPIFailures(
+	failures map[string]string,
+	source string,
+	detail string,
+	statusCode int,
+) error {
+	if len(failures) == 0 {
+		return nil
+	}
+	if strings.TrimSpace(source) == "" {
+		source = "ip-api"
+	}
+	values := make([]string, 0, len(failures))
+	args := make([]interface{}, 0, len(failures)*5)
+	seen := make(map[string]struct{}, len(failures))
+	for ip, reason := range failures {
+		ip = strings.TrimSpace(ip)
+		if ip == "" {
+			continue
+		}
+		if _, ok := seen[ip]; ok {
+			continue
+		}
+		seen[ip] = struct{}{}
+		if strings.TrimSpace(reason) == "" {
+			reason = "unknown"
+		}
+		values = append(values, "(?, ?, ?, ?, ?)")
+		args = append(args, ip, source, reason, detail, statusCode)
+	}
+	if len(values) == 0 {
+		return nil
+	}
+	query := fmt.Sprintf(
+		`INSERT INTO "ip_geo_api_failures" (ip, source, reason, error, status_code)
+         VALUES %s`,
+		strings.Join(values, ","),
+	)
+	_, err := r.db.Exec(sqlutil.ReplacePlaceholders(query), args...)
+	return err
+}
+
+func (r *Repository) ListIPGeoAPIFailures(page, pageSize int) ([]IPGeoAPIFailure, bool, error) {
+	return r.ListIPGeoAPIFailuresFiltered("", "", "", page, pageSize)
+}
+
+func (r *Repository) ListIPGeoAPIFailuresFiltered(
+	websiteID string,
+	reason string,
+	keyword string,
+	page int,
+	pageSize int,
+) ([]IPGeoAPIFailure, bool, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 50
+	}
+	if pageSize > 500 {
+		pageSize = 500
+	}
+	offset := (page - 1) * pageSize
+
+	joinClause := ""
+	whereParts := make([]string, 0, 3)
+	args := make([]interface{}, 0, 5)
+
+	websiteID = strings.TrimSpace(websiteID)
+	if websiteID != "" {
+		ipTable := fmt.Sprintf("%s_dim_ip", websiteID)
+		exists, err := r.tableExists(ipTable)
+		if err != nil {
+			return nil, false, err
+		}
+		if !exists {
+			return []IPGeoAPIFailure{}, false, nil
+		}
+		joinClause = fmt.Sprintf(`JOIN "%s" AS ip ON f.ip = ip.ip`, ipTable)
+	}
+
+	reason = strings.TrimSpace(reason)
+	if reason != "" {
+		whereParts = append(whereParts, "f.reason = ?")
+		args = append(args, reason)
+	}
+
+	keyword = strings.TrimSpace(keyword)
+	if keyword != "" {
+		whereParts = append(whereParts, "f.ip ILIKE ?")
+		args = append(args, "%"+keyword+"%")
+	}
+
+	whereClause := ""
+	if len(whereParts) > 0 {
+		whereClause = "WHERE " + strings.Join(whereParts, " AND ")
+	}
+
+	query := fmt.Sprintf(
+		`SELECT f.id, f.ip, f.source, f.reason, f.error, f.status_code, f.created_at
+         FROM "ip_geo_api_failures" AS f
+         %s
+         %s
+         ORDER BY f.created_at DESC
+         LIMIT ? OFFSET ?`,
+		joinClause, whereClause,
+	)
+	args = append(args, pageSize+1, offset)
+
+	rows, err := r.db.Query(sqlutil.ReplacePlaceholders(query), args...)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+
+	failures := make([]IPGeoAPIFailure, 0, pageSize)
+	hasMore := false
+	for rows.Next() {
+		var entry IPGeoAPIFailure
+		if err := rows.Scan(
+			&entry.ID,
+			&entry.IP,
+			&entry.Source,
+			&entry.Reason,
+			&entry.Error,
+			&entry.StatusCode,
+			&entry.CreatedAt,
+		); err != nil {
+			return nil, false, err
+		}
+		if len(failures) < pageSize {
+			failures = append(failures, entry)
+		} else {
+			hasMore = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+	return failures, hasMore, nil
+}
+
+func (r *Repository) CreateSystemNotification(entry SystemNotification) (int64, error) {
+	level := strings.TrimSpace(entry.Level)
+	category := strings.TrimSpace(entry.Category)
+	title := strings.TrimSpace(entry.Title)
+	message := strings.TrimSpace(entry.Message)
+	fingerprint := strings.TrimSpace(entry.Fingerprint)
+	if level == "" {
+		level = "info"
+	}
+	if category == "" {
+		category = "system"
+	}
+	if title == "" {
+		title = "系统通知"
+	}
+	if message == "" {
+		message = "-"
+	}
+
+	var metadataJSON []byte
+	if entry.Metadata != nil {
+		if encoded, err := json.Marshal(entry.Metadata); err == nil {
+			metadataJSON = encoded
+		}
+	}
+
+	if fingerprint == "" {
+		row := r.db.QueryRow(
+			`INSERT INTO "system_notifications" (level, category, title, message, metadata)
+             VALUES ($1, $2, $3, $4, $5)
+             RETURNING id`,
+			level, category, title, message, metadataJSON,
+		)
+		var id int64
+		if err := row.Scan(&id); err != nil {
+			return 0, err
+		}
+		return id, nil
+	}
+
+	row := r.db.QueryRow(
+		`INSERT INTO "system_notifications"
+            (level, category, title, message, fingerprint, occurrences, metadata, last_occurred_at)
+         VALUES ($1, $2, $3, $4, $5, 1, $6, NOW())
+         ON CONFLICT (fingerprint) DO UPDATE SET
+            level = EXCLUDED.level,
+            category = EXCLUDED.category,
+            title = EXCLUDED.title,
+            message = EXCLUDED.message,
+            metadata = COALESCE(EXCLUDED.metadata, "system_notifications".metadata),
+            occurrences = "system_notifications".occurrences + 1,
+            last_occurred_at = NOW(),
+            read_at = NULL
+         RETURNING id`,
+		level, category, title, message, fingerprint, metadataJSON,
+	)
+	var id int64
+	if err := row.Scan(&id); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (r *Repository) ListSystemNotifications(page, pageSize int, unreadOnly bool) ([]SystemNotification, bool, error) {
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > 200 {
+		pageSize = 200
+	}
+	offset := (page - 1) * pageSize
+
+	where := ""
+	args := make([]interface{}, 0, 3)
+	if unreadOnly {
+		where = "WHERE read_at IS NULL"
+	}
+	query := fmt.Sprintf(
+		`SELECT id, level, category, title, message, fingerprint, occurrences, metadata, created_at, last_occurred_at, read_at
+         FROM "system_notifications"
+         %s
+         ORDER BY last_occurred_at DESC
+         LIMIT ? OFFSET ?`,
+		where,
+	)
+	args = append(args, pageSize+1, offset)
+
+	rows, err := r.db.Query(sqlutil.ReplacePlaceholders(query), args...)
+	if err != nil {
+		return nil, false, err
+	}
+	defer rows.Close()
+
+	notifications := make([]SystemNotification, 0, pageSize)
+	hasMore := false
+	for rows.Next() {
+		var entry SystemNotification
+		var metadataBytes []byte
+		var readAt sql.NullTime
+		if err := rows.Scan(
+			&entry.ID,
+			&entry.Level,
+			&entry.Category,
+			&entry.Title,
+			&entry.Message,
+			&entry.Fingerprint,
+			&entry.Occurrences,
+			&metadataBytes,
+			&entry.CreatedAt,
+			&entry.LastOccurredAt,
+			&readAt,
+		); err != nil {
+			return nil, false, err
+		}
+		if readAt.Valid {
+			entry.ReadAt = &readAt.Time
+		}
+		if len(metadataBytes) > 0 {
+			_ = json.Unmarshal(metadataBytes, &entry.Metadata)
+		}
+		if len(notifications) < pageSize {
+			notifications = append(notifications, entry)
+		} else {
+			hasMore = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, err
+	}
+	return notifications, hasMore, nil
+}
+
+func (r *Repository) MarkSystemNotificationsRead(ids []int64) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	values := make([]string, 0, len(ids))
+	args := make([]interface{}, 0, len(ids))
+	for _, id := range ids {
+		if id <= 0 {
+			continue
+		}
+		values = append(values, "?")
+		args = append(args, id)
+	}
+	if len(values) == 0 {
+		return nil
+	}
+	query := fmt.Sprintf(
+		`UPDATE "system_notifications"
+         SET read_at = NOW()
+         WHERE read_at IS NULL AND id IN (%s)`,
+		strings.Join(values, ","),
+	)
+	_, err := r.db.Exec(sqlutil.ReplacePlaceholders(query), args...)
+	return err
+}
+
+func (r *Repository) MarkAllSystemNotificationsRead() error {
+	_, err := r.db.Exec(`UPDATE "system_notifications" SET read_at = NOW() WHERE read_at IS NULL`)
+	return err
+}
+
+func (r *Repository) GetSystemNotificationUnreadCount() (int64, error) {
+	var count int64
+	row := r.db.QueryRow(`SELECT COUNT(*) FROM "system_notifications" WHERE read_at IS NULL`)
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (r *Repository) DetectIPGeoAnomalies(websiteID string, limit int) (int, []string, error) {
@@ -1057,6 +1436,12 @@ func (r *Repository) createTables() error {
 	if err := r.ensureIPGeoPendingTable(); err != nil {
 		return err
 	}
+	if err := r.ensureIPGeoAPIFailureTable(); err != nil {
+		return err
+	}
+	if err := r.ensureSystemNotificationTable(); err != nil {
+		return err
+	}
 	for _, id := range config.GetAllWebsiteIDs() {
 		if err := r.ensureWebsiteSchema(id); err != nil {
 			return err
@@ -1093,6 +1478,55 @@ func (r *Repository) ensureIPGeoPendingTable() error {
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )`,
 		`CREATE INDEX IF NOT EXISTS idx_ip_geo_pending_updated_at ON "ip_geo_pending"(updated_at)`,
+	}
+	for _, stmt := range stmts {
+		if _, err := r.db.Exec(stmt); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Repository) ensureIPGeoAPIFailureTable() error {
+	stmts := []string{
+		`CREATE TABLE IF NOT EXISTS "ip_geo_api_failures" (
+            id BIGSERIAL PRIMARY KEY,
+            ip TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'ip-api',
+            reason TEXT NOT NULL DEFAULT 'unknown',
+            error TEXT NOT NULL DEFAULT '',
+            status_code INT NOT NULL DEFAULT 0,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )`,
+		`CREATE INDEX IF NOT EXISTS idx_ip_geo_api_failures_created_at ON "ip_geo_api_failures"(created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_ip_geo_api_failures_ip ON "ip_geo_api_failures"(ip)`,
+	}
+	for _, stmt := range stmts {
+		if _, err := r.db.Exec(stmt); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Repository) ensureSystemNotificationTable() error {
+	stmts := []string{
+		`CREATE TABLE IF NOT EXISTS "system_notifications" (
+            id BIGSERIAL PRIMARY KEY,
+            level TEXT NOT NULL,
+            category TEXT NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            fingerprint TEXT UNIQUE,
+            occurrences INT NOT NULL DEFAULT 1,
+            metadata JSONB,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            read_at TIMESTAMPTZ
+        )`,
+		`CREATE INDEX IF NOT EXISTS idx_system_notifications_created_at ON "system_notifications"(created_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_system_notifications_last_occurred ON "system_notifications"(last_occurred_at)`,
+		`CREATE INDEX IF NOT EXISTS idx_system_notifications_read_at ON "system_notifications"(read_at)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := r.db.Exec(stmt); err != nil {

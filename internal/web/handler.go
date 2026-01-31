@@ -1,6 +1,7 @@
 package web
 
 import (
+	"encoding/csv"
 	"errors"
 	"fmt"
 	"net/http"
@@ -71,6 +72,80 @@ func SetupRoutes(
 			"migration_required":                      migrationRequired,
 			"setup_required":                          config.IsSetupMode(),
 			"config_readonly":                         config.ConfigReadOnly(),
+		})
+	})
+
+	router.GET("/api/system/notifications", func(c *gin.Context) {
+		if statsFactory == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "初始化模式暂不支持系统通知",
+			})
+			return
+		}
+		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+		pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+		unreadOnly := strings.EqualFold(c.DefaultQuery("unreadOnly", "false"), "true") ||
+			strings.EqualFold(c.DefaultQuery("unread_only", "false"), "true")
+
+		repo := statsFactory.Repo()
+		notifications, hasMore, err := repo.ListSystemNotifications(page, pageSize, unreadOnly)
+		if err != nil {
+			logrus.WithError(err).Error("读取系统通知失败")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("读取系统通知失败: %v", err),
+			})
+			return
+		}
+		unreadCount, err := repo.GetSystemNotificationUnreadCount()
+		if err != nil {
+			logrus.WithError(err).Warn("读取未读通知数失败")
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"notifications": notifications,
+			"has_more":      hasMore,
+			"unread_count":  unreadCount,
+		})
+	})
+
+	router.POST("/api/system/notifications/read", func(c *gin.Context) {
+		if statsFactory == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "初始化模式暂不支持系统通知",
+			})
+			return
+		}
+		type readRequest struct {
+			IDs []int64 `json:"ids"`
+			All bool    `json:"all"`
+		}
+		var req readRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "请求参数错误",
+			})
+			return
+		}
+		repo := statsFactory.Repo()
+		if req.All {
+			if err := repo.MarkAllSystemNotificationsRead(); err != nil {
+				logrus.WithError(err).Error("标记通知已读失败")
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": fmt.Sprintf("标记通知已读失败: %v", err),
+				})
+				return
+			}
+		} else {
+			if err := repo.MarkSystemNotificationsRead(req.IDs); err != nil {
+				logrus.WithError(err).Error("标记通知已读失败")
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": fmt.Sprintf("标记通知已读失败: %v", err),
+				})
+				return
+			}
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
 		})
 	})
 
@@ -356,6 +431,103 @@ func SetupRoutes(
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
 		})
+	})
+
+	router.GET("/api/ip-geo/failures", func(c *gin.Context) {
+		if statsFactory == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "初始化模式暂不支持失败记录",
+			})
+			return
+		}
+		page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+		pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "50"))
+		websiteID := strings.TrimSpace(c.DefaultQuery("id", ""))
+		reason := strings.TrimSpace(c.DefaultQuery("reason", ""))
+		keyword := strings.TrimSpace(c.DefaultQuery("keyword", ""))
+
+		repo := statsFactory.Repo()
+		failures, hasMore, err := repo.ListIPGeoAPIFailuresFiltered(websiteID, reason, keyword, page, pageSize)
+		if err != nil {
+			logrus.WithError(err).Error("读取 IP 归属地失败记录失败")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": fmt.Sprintf("读取失败记录失败: %v", err),
+			})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"failures": failures,
+			"has_more": hasMore,
+		})
+	})
+
+	router.GET("/api/ip-geo/failures/export", func(c *gin.Context) {
+		if statsFactory == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "初始化模式暂不支持失败记录导出",
+			})
+			return
+		}
+
+		websiteID := strings.TrimSpace(c.DefaultQuery("id", ""))
+		reason := strings.TrimSpace(c.DefaultQuery("reason", ""))
+		keyword := strings.TrimSpace(c.DefaultQuery("keyword", ""))
+		websiteLabel := "all"
+		if websiteID != "" {
+			if site, ok := config.GetWebsiteByID(websiteID); ok && strings.TrimSpace(site.Name) != "" {
+				websiteLabel = site.Name
+			} else {
+				websiteLabel = websiteID
+			}
+		}
+
+		repo := statsFactory.Repo()
+		const pageSize = 2000
+		page := 1
+
+		var buffer strings.Builder
+		writer := csv.NewWriter(&buffer)
+		_ = writer.Write([]string{"website", "ip", "reason", "source", "error", "status_code", "created_at"})
+
+		for {
+			failures, hasMore, err := repo.ListIPGeoAPIFailuresFiltered(websiteID, reason, keyword, page, pageSize)
+			if err != nil {
+				logrus.WithError(err).Error("导出失败记录失败")
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": fmt.Sprintf("导出失败记录失败: %v", err),
+				})
+				return
+			}
+			for _, entry := range failures {
+				_ = writer.Write([]string{
+					websiteLabel,
+					entry.IP,
+					entry.Reason,
+					entry.Source,
+					entry.Error,
+					strconv.Itoa(entry.StatusCode),
+					entry.CreatedAt.Format(time.RFC3339),
+				})
+			}
+			if !hasMore {
+				break
+			}
+			page++
+		}
+
+		writer.Flush()
+		if err := writer.Error(); err != nil {
+			logrus.WithError(err).Error("生成 CSV 失败")
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "生成 CSV 失败",
+			})
+			return
+		}
+
+		filename := fmt.Sprintf("ip_geo_failures_%s.csv", time.Now().Format("20060102_150405"))
+		c.Header("Content-Type", "text/csv; charset=utf-8")
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+		c.String(http.StatusOK, buffer.String())
 	})
 
 	router.GET("/api/logs/export", func(c *gin.Context) {

@@ -199,12 +199,14 @@ func (p *LogParser) loadState() {
 
 	if err != nil {
 		logrus.Errorf("无法读取扫描状态文件: %v", err)
+		p.notifyFileIO("", p.statePath, "读取扫描状态文件", err)
 		p.states = make(map[string]LogScanState)
 		return
 	}
 
 	if err := json.Unmarshal(data, &p.states); err != nil {
 		logrus.Errorf("解析扫描状态失败: %v", err)
+		p.notifyFileIO("", p.statePath, "解析扫描状态文件", err)
 		p.states = make(map[string]LogScanState)
 	}
 
@@ -233,16 +235,19 @@ func (p *LogParser) updateState() {
 	data, err := json.Marshal(p.states)
 	if err != nil {
 		logrus.Errorf("保存扫描状态失败: %v", err)
+		p.notifyFileIO("", p.statePath, "序列化扫描状态文件", err)
 		return
 	}
 
 	tmpPath := p.statePath + ".tmp"
 	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
 		logrus.Errorf("保存扫描状态失败: %v", err)
+		p.notifyFileIO("", p.statePath, "写入扫描状态文件", err)
 		return
 	}
 	if err := os.Rename(tmpPath, p.statePath); err != nil {
 		logrus.Errorf("保存扫描状态失败: %v", err)
+		p.notifyFileIO("", p.statePath, "保存扫描状态文件", err)
 	}
 }
 
@@ -629,6 +634,7 @@ func (p *LogParser) scanNginxLogsInternal(websiteIDs []string) []ParserResult {
 			if _, err := p.getLineParser(id); err != nil {
 				parserResult.Success = false
 				parserResult.Error = err
+				p.notifyLogParsing(id, "", "日志解析配置", err)
 				parserResults[i] = parserResult
 				continue
 			}
@@ -640,10 +646,12 @@ func (p *LogParser) scanNginxLogsInternal(websiteIDs []string) []ParserResult {
 					errstr := "解析日志路径模式 " + logPath + " 失败: " + err.Error()
 					parserResult.Success = false
 					parserResult.Error = errors.New(errstr)
+					p.notifyLogParsing(id, logPath, "解析日志路径模式", err)
 				} else if len(matches) == 0 {
 					errstr := "日志路径模式 " + logPath + " 未匹配到任何文件"
 					parserResult.Success = false
 					parserResult.Error = errors.New(errstr)
+					p.notifyLogParsing(id, logPath, "日志路径未匹配到文件", errors.New(errstr))
 				} else {
 					for _, matchPath := range matches {
 						p.scanSingleFile(id, matchPath, &parserResult)
@@ -769,6 +777,7 @@ func (p *LogParser) scanSingleFile(
 	file, err := os.Open(logPath)
 	if err != nil {
 		logrus.Errorf("无法打开日志文件 %s: %v", logPath, err)
+		p.notifyFileIO(websiteID, logPath, "打开日志文件", err)
 		return
 	}
 	defer file.Close()
@@ -776,6 +785,7 @@ func (p *LogParser) scanSingleFile(
 	fileInfo, err := file.Stat()
 	if err != nil {
 		logrus.Errorf("无法获取文件信息 %s: %v", logPath, err)
+		p.notifyFileIO(websiteID, logPath, "读取日志文件信息", err)
 		return
 	}
 
@@ -786,6 +796,7 @@ func (p *LogParser) scanSingleFile(
 	if err != nil {
 		parserResult.Success = false
 		parserResult.Error = err
+		p.notifyLogParsing(websiteID, logPath, "日志解析配置", err)
 		return
 	}
 
@@ -822,9 +833,11 @@ func (p *LogParser) scanSingleFile(
 						}
 					} else {
 						logrus.Errorf("无法解析 gzip 日志文件 %s: %v", logPath, err)
+						p.notifyLogParsing(websiteID, logPath, "解析 gzip 日志文件", err)
 					}
 				} else {
 					logrus.Errorf("无法重置 gzip 文件 %s: %v", logPath, err)
+					p.notifyFileIO(websiteID, logPath, "重置 gzip 文件指针", err)
 				}
 			}
 
@@ -841,6 +854,7 @@ func (p *LogParser) scanSingleFile(
 		backfillEnd := recentOffset
 		if err != nil {
 			logrus.Warnf("计算日志文件 %s 最近窗口失败: %v", logPath, err)
+			p.notifyFileIO(websiteID, logPath, "计算日志文件最近窗口", err)
 			backfillEnd = currentSize
 			recentOffset = 0
 		}
@@ -857,6 +871,7 @@ func (p *LogParser) scanSingleFile(
 		if recentOffset < currentSize {
 			if _, err := file.Seek(recentOffset, 0); err != nil {
 				logrus.Errorf("无法设置文件读取位置 %s: %v", logPath, err)
+				p.notifyFileIO(websiteID, logPath, "设置文件读取位置", err)
 			} else {
 				entriesCount, _, minTs, maxTs := p.parseLogLines(
 					file, websiteID, "", parserResult, parseWindow{minTs: cutoffTs},
@@ -891,11 +906,13 @@ func (p *LogParser) scanSingleFile(
 	if isGzip {
 		if _, err = file.Seek(0, 0); err != nil {
 			logrus.Errorf("无法设置文件读取位置 %s: %v", logPath, err)
+			p.notifyFileIO(websiteID, logPath, "设置文件读取位置", err)
 			return
 		}
 		gzReader, err := gzip.NewReader(file)
 		if err != nil {
 			logrus.Errorf("无法解析 gzip 日志文件 %s: %v", logPath, err)
+			p.notifyLogParsing(websiteID, logPath, "解析 gzip 日志文件", err)
 			return
 		}
 		if startOffset > 0 {
@@ -904,11 +921,13 @@ func (p *LogParser) scanSingleFile(
 				gzReader.Close()
 				if _, err := file.Seek(0, 0); err != nil {
 					logrus.Errorf("无法重置 gzip 文件 %s: %v", logPath, err)
+					p.notifyFileIO(websiteID, logPath, "重置 gzip 文件指针", err)
 					return
 				}
 				gzReader, err = gzip.NewReader(file)
 				if err != nil {
 					logrus.Errorf("无法重新解析 gzip 日志文件 %s: %v", logPath, err)
+					p.notifyLogParsing(websiteID, logPath, "重新解析 gzip 日志文件", err)
 					return
 				}
 				startOffset = 0
@@ -919,6 +938,7 @@ func (p *LogParser) scanSingleFile(
 	} else {
 		if _, err = file.Seek(startOffset, 0); err != nil {
 			logrus.Errorf("无法设置文件读取位置 %s: %v", logPath, err)
+			p.notifyFileIO(websiteID, logPath, "设置文件读取位置", err)
 			return
 		}
 		reader = file
@@ -1173,6 +1193,7 @@ func (p *LogParser) parseLogLines(
 		p.markBatchIPGeoPending(batch)
 		if err := p.repo.BatchInsertLogsForWebsite(websiteID, batch); err != nil {
 			logrus.Errorf("批量插入网站 %s 的日志记录失败: %v", websiteID, err)
+			p.notifyDatabaseWrite(websiteID, "写入日志批次", err)
 		} else {
 			p.enqueueBatchIPGeo(batch)
 		}
@@ -1226,6 +1247,7 @@ func (p *LogParser) parseLogLines(
 
 	if err := scanner.Err(); err != nil {
 		logrus.Errorf("扫描网站 %s 的文件时出错: %v", websiteID, err)
+		p.notifyLogParsing(websiteID, "", "扫描日志文件", err)
 	}
 
 	p.recordParsedHourBuckets(websiteID, parsedBuckets)
@@ -1258,6 +1280,7 @@ func (p *LogParser) IngestLines(websiteID, sourceID string, lines []string) (int
 		// 先标记 location 为“待解析”，再在成功落库后写入 ip_geo_pending（避免竞态导致“待解析”长期不变）
 		p.markBatchIPGeoPending(batch)
 		if err := p.repo.BatchInsertLogsForWebsite(websiteID, batch); err != nil {
+			p.notifyDatabaseWrite(websiteID, "写入日志批次", err)
 			return err
 		}
 		p.enqueueBatchIPGeo(batch)
@@ -1368,9 +1391,24 @@ func (p *LogParser) enqueueBatchIPGeo(batch []store.NginxLogRecord) {
 	if entries, err := p.repo.GetIPGeoCache(unique); err != nil {
 		logrus.WithError(err).Warn("读取 IP 归属地缓存失败")
 	} else if len(entries) > 0 {
-		cached = entries
-		if err := p.repo.UpdateIPGeoLocations(cached, pendingLocationLabel); err != nil {
+		unknownCached := make([]string, 0)
+		for ip, entry := range entries {
+			if entry.Domestic == "未知" && entry.Global == "未知" {
+				unknownCached = append(unknownCached, ip)
+				continue
+			}
+			cached[ip] = entry
+		}
+		if len(unknownCached) > 0 {
+			if err := p.repo.DeleteIPGeoCache(unknownCached); err != nil {
+				logrus.WithError(err).Warn("清理未知 IP 归属地缓存失败")
+			}
+			enrich.DeleteIPGeoCacheEntries(unknownCached)
+		}
+		if len(cached) > 0 {
+			if err := p.repo.UpdateIPGeoLocations(cached, pendingLocationLabel); err != nil {
 			logrus.WithError(err).Warn("回填缓存中的 IP 归属地失败")
+			}
 		}
 	}
 
