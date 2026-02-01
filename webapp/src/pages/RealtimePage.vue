@@ -92,7 +92,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="!refererItems.length">
+            <tr v-if="!refererItems.length" class="realtime-empty-row">
               <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in refererItems" :key="item.name">
@@ -131,7 +131,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="!pageItems.length">
+            <tr v-if="!pageItems.length" class="realtime-empty-row">
               <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in pageItems" :key="item.name">
@@ -170,7 +170,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="!entryItems.length">
+            <tr v-if="!entryItems.length" class="realtime-empty-row">
               <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in entryItems" :key="item.name">
@@ -209,7 +209,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="!browserItems.length">
+            <tr v-if="!browserItems.length" class="realtime-empty-row">
               <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in browserItems" :key="item.name">
@@ -248,7 +248,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-if="!cityItems.length">
+            <tr v-if="!cityItems.length" class="realtime-empty-row">
               <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in cityItems" :key="item.name">
@@ -586,7 +586,7 @@ function formatPercent(value: number) { return n(Number(value || 0), 'percent');
 }
 
 .realtime-device-card {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.7), var(--panel-muted));
+  background: var(--panel-muted);
   border-radius: 14px;
   border: 1px solid var(--border);
   padding: 12px;
@@ -666,6 +666,16 @@ function formatPercent(value: number) { return n(Number(value || 0), 'percent');
 
 .realtime-count-col {
   text-align: right;
+}
+
+.realtime-empty-row {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.realtime-empty-row td {
+  background: transparent !important;
 }
 
 @media (max-width: 1200px) {

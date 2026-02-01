@@ -68,6 +68,7 @@ docker run -d --name nginxpulse \
   -v ./docker_local/logs:/share/logs:ro \
   -v ./docker_local/nginxpulse_data:/app/var/nginxpulse_data \
   -v ./docker_local/pgdata:/app/var/pgdata \
+  -v ./docker_local/configs:/app/configs \
   -v /etc/localtime:/etc/localtime:ro \
   magiccoders/nginxpulse:latest
 ```
@@ -92,6 +93,7 @@ services:
       - ./docker_local/logs:/share/logs
       - ./docker_local/nginxpulse_data:/app/var/nginxpulse_data
       - ./docker_local/pgdata:/app/var/pgdata
+      - ./docker_local/configs:/app/configs
       - /etc/localtime:/etc/localtime
     restart: unless-stopped
 ```

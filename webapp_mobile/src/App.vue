@@ -50,12 +50,14 @@
     </van-nav-bar>
 
     <van-notice-bar
-      v-if="demoMode && !setupRequired"
+      v-if="demoMode && !setupRequired && demoBannerVisible"
       class="demo-banner"
       color="#c2410c"
       background="#fff4e5"
       left-icon="info-o"
+      mode="closeable"
       wrapable
+      @close="demoBannerVisible = false"
     >
       {{ t('demo.text') }}
       <a href="https://github.com/likaia/nginxpulse/" target="_blank" rel="noopener">
@@ -255,6 +257,7 @@ const mainClass = computed(() => (route.meta.mainClass as string) || '');
 const isDark = ref(localStorage.getItem('darkMode') === 'true');
 const parsingActive = ref(false);
 const demoMode = ref(false);
+const demoBannerVisible = ref(true);
 const migrationRequired = ref(false);
 const setupRequired = ref(false);
 const accessKeyRequired = ref(false);
@@ -601,6 +604,12 @@ function onSelectLanguage(action: { value?: string }) {
   color: inherit;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.demo-banner .van-notice-bar__close {
+  font-size: 14px;
+  margin-left: 8px;
+  cursor: pointer;
 }
 
 .access-popup {
