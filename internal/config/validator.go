@@ -1,7 +1,9 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -126,6 +128,21 @@ func ValidateConfig(cfg *Config, opts ValidateOptions) ValidationResult {
 				addError(srcPrefix+".type", "不支持的 source.type")
 			}
 		}
+
+		if site.Whitelist != nil {
+			whitelistPrefix := sitePrefix + ".whitelist"
+			if site.Whitelist.Enabled && len(site.Whitelist.IPs) == 0 && len(site.Whitelist.Cities) == 0 && !site.Whitelist.NonMainland {
+				addError(whitelistPrefix, "白名单已启用，但未配置任何规则")
+			}
+			if len(site.Whitelist.IPs) > 0 {
+				for _, raw := range site.Whitelist.IPs {
+					if err := validateWhitelistIP(raw); err != nil {
+						addError(whitelistPrefix+".ips", fmt.Sprintf("白名单 IP/IP 段格式不正确: %s", raw))
+						break
+					}
+				}
+			}
+		}
 	}
 
 	if strings.TrimSpace(cfg.Database.Driver) == "" {
@@ -154,6 +171,50 @@ func ValidateConfig(cfg *Config, opts ValidateOptions) ValidationResult {
 	}
 
 	return result
+}
+
+func validateWhitelistIP(value string) error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	if strings.Contains(trimmed, "/") {
+		if _, _, err := net.ParseCIDR(trimmed); err != nil {
+			return err
+		}
+		return nil
+	}
+	if strings.Contains(trimmed, "-") {
+		parts := strings.SplitN(trimmed, "-", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid range")
+		}
+		start := net.ParseIP(strings.TrimSpace(parts[0]))
+		end := net.ParseIP(strings.TrimSpace(parts[1]))
+		if start == nil || end == nil {
+			return fmt.Errorf("invalid range")
+		}
+		if (start.To4() == nil) != (end.To4() == nil) {
+			return fmt.Errorf("mixed ip versions")
+		}
+		if compareIP(start, end) > 0 {
+			return fmt.Errorf("range start > end")
+		}
+		return nil
+	}
+	if net.ParseIP(trimmed) == nil {
+		return fmt.Errorf("invalid ip")
+	}
+	return nil
+}
+
+func compareIP(a, b net.IP) int {
+	aa := a.To16()
+	bb := b.To16()
+	if aa == nil || bb == nil {
+		return 0
+	}
+	return bytes.Compare(aa, bb)
 }
 
 func validatePath(value string) error {

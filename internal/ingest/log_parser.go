@@ -144,15 +144,16 @@ type logLineParser struct {
 }
 
 type LogParser struct {
-	repo            *store.Repository
-	statePath       string
-	states          map[string]LogScanState // 各网站的扫描状态，以网站ID为键
-	demoMode        bool
-	retentionDays   int
-	parseBatchSize  int
-	ipGeoCacheLimit int
-	lineParsers     map[string]*logLineParser // key: websiteID or websiteID:sourceID
-	dedup           *dedup.Cache
+	repo              *store.Repository
+	statePath         string
+	states            map[string]LogScanState // 各网站的扫描状态，以网站ID为键
+	demoMode          bool
+	retentionDays     int
+	parseBatchSize    int
+	ipGeoCacheLimit   int
+	lineParsers       map[string]*logLineParser // key: websiteID or websiteID:sourceID
+	dedup             *dedup.Cache
+	whitelistMatchers map[string]*enrich.WhitelistMatcher
 }
 
 // NewLogParser 创建新的日志解析器
@@ -172,15 +173,23 @@ func NewLogParser(userRepoPtr *store.Repository) *LogParser {
 		ipGeoCacheLimit = 1000000
 	}
 	parser := &LogParser{
-		repo:            userRepoPtr,
-		statePath:       statePath,
-		states:          make(map[string]LogScanState),
-		demoMode:        cfg.System.DemoMode,
-		retentionDays:   retentionDays,
-		parseBatchSize:  parseBatchSize,
-		ipGeoCacheLimit: ipGeoCacheLimit,
-		lineParsers:     make(map[string]*logLineParser),
-		dedup:           dedup.NewCache(100000, 10*time.Minute),
+		repo:              userRepoPtr,
+		statePath:         statePath,
+		states:            make(map[string]LogScanState),
+		demoMode:          cfg.System.DemoMode,
+		retentionDays:     retentionDays,
+		parseBatchSize:    parseBatchSize,
+		ipGeoCacheLimit:   ipGeoCacheLimit,
+		lineParsers:       make(map[string]*logLineParser),
+		dedup:             dedup.NewCache(100000, 10*time.Minute),
+		whitelistMatchers: make(map[string]*enrich.WhitelistMatcher),
+	}
+	for _, websiteID := range config.GetAllWebsiteIDs() {
+		if site, ok := config.GetWebsiteByID(websiteID); ok {
+			if matcher := enrich.NewWhitelistMatcher(site.Whitelist); matcher != nil {
+				parser.whitelistMatchers[websiteID] = matcher
+			}
+		}
 	}
 	parser.loadState()
 	parser.resetStateIfEmptyDB()
@@ -1178,6 +1187,8 @@ func (p *LogParser) parseLogLines(
 	var minTs int64
 	var maxTs int64
 	parsedBuckets := make(map[int64]struct{})
+	var whitelistHits map[string]*whitelistHit
+	var batchWhitelistHits map[string]*whitelistHit
 
 	// 批量插入相关
 	batch := make([]store.NginxLogRecord, 0, p.parseBatchSize)
@@ -1196,9 +1207,11 @@ func (p *LogParser) parseLogLines(
 			p.notifyDatabaseWrite(websiteID, "写入日志批次", err)
 		} else {
 			p.enqueueBatchIPGeo(batch)
+			whitelistHits = mergeWhitelistHits(whitelistHits, batchWhitelistHits)
 		}
 
 		batch = batch[:0] // 清空批次但保留容量
+		batchWhitelistHits = nil
 	}
 
 	// 逐行处理
@@ -1222,6 +1235,11 @@ func (p *LogParser) parseLogLines(
 		ts := entry.Timestamp.Unix()
 		if !window.allows(ts) {
 			continue
+		}
+		if matcher := p.whitelistMatchers[websiteID]; matcher != nil && matcher.Enabled() {
+			if match, ok := matcher.Match(entry.IP); ok {
+				batchWhitelistHits = p.recordWhitelistHit(websiteID, *entry, match, batchWhitelistHits)
+			}
 		}
 		batch = append(batch, *entry)
 		bucket := (ts / 3600) * 3600
@@ -1249,6 +1267,7 @@ func (p *LogParser) parseLogLines(
 		logrus.Errorf("扫描网站 %s 的文件时出错: %v", websiteID, err)
 		p.notifyLogParsing(websiteID, "", "扫描日志文件", err)
 	}
+	p.flushWhitelistHits(whitelistHits)
 
 	p.recordParsedHourBuckets(websiteID, parsedBuckets)
 	return entriesCount, totalBytes, minTs, maxTs // 返回当前文件的日志条数
@@ -1272,6 +1291,8 @@ func (p *LogParser) IngestLines(websiteID, sourceID string, lines []string) (int
 	var minTs int64
 	var maxTs int64
 	parsedBuckets := make(map[int64]struct{})
+	var whitelistHits map[string]*whitelistHit
+	var batchWhitelistHits map[string]*whitelistHit
 
 	processBatch := func() error {
 		if len(batch) == 0 {
@@ -1284,7 +1305,9 @@ func (p *LogParser) IngestLines(websiteID, sourceID string, lines []string) (int
 			return err
 		}
 		p.enqueueBatchIPGeo(batch)
+		whitelistHits = mergeWhitelistHits(whitelistHits, batchWhitelistHits)
 		batch = batch[:0]
+		batchWhitelistHits = nil
 		return nil
 	}
 
@@ -1297,6 +1320,11 @@ func (p *LogParser) IngestLines(websiteID, sourceID string, lines []string) (int
 		if p.dedup != nil && p.dedup.Seen(key) {
 			deduped++
 			continue
+		}
+		if matcher := p.whitelistMatchers[websiteID]; matcher != nil && matcher.Enabled() {
+			if match, ok := matcher.Match(entry.IP); ok {
+				batchWhitelistHits = p.recordWhitelistHit(websiteID, *entry, match, batchWhitelistHits)
+			}
 		}
 		batch = append(batch, *entry)
 		accepted++
@@ -1320,6 +1348,7 @@ func (p *LogParser) IngestLines(websiteID, sourceID string, lines []string) (int
 	if err := processBatch(); err != nil {
 		return accepted, deduped, err
 	}
+	p.flushWhitelistHits(whitelistHits)
 
 	if accepted > 0 {
 		p.recordParsedHourBuckets(websiteID, parsedBuckets)
@@ -1407,7 +1436,7 @@ func (p *LogParser) enqueueBatchIPGeo(batch []store.NginxLogRecord) {
 		}
 		if len(cached) > 0 {
 			if err := p.repo.UpdateIPGeoLocations(cached, pendingLocationLabel); err != nil {
-			logrus.WithError(err).Warn("回填缓存中的 IP 归属地失败")
+				logrus.WithError(err).Warn("回填缓存中的 IP 归属地失败")
 			}
 		}
 	}

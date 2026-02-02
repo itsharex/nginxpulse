@@ -729,6 +729,62 @@ func (r *Repository) CreateSystemNotification(entry SystemNotification) (int64, 
 	return id, nil
 }
 
+func (r *Repository) CreateSystemNotificationWithCount(entry SystemNotification, count int) (int64, error) {
+	if count <= 0 {
+		count = 1
+	}
+	level := strings.TrimSpace(entry.Level)
+	category := strings.TrimSpace(entry.Category)
+	title := strings.TrimSpace(entry.Title)
+	message := strings.TrimSpace(entry.Message)
+	fingerprint := strings.TrimSpace(entry.Fingerprint)
+	if level == "" {
+		level = "info"
+	}
+	if category == "" {
+		category = "system"
+	}
+	if title == "" {
+		title = "系统通知"
+	}
+	if message == "" {
+		message = "-"
+	}
+
+	var metadataJSON []byte
+	if entry.Metadata != nil {
+		if encoded, err := json.Marshal(entry.Metadata); err == nil {
+			metadataJSON = encoded
+		}
+	}
+
+	if fingerprint == "" {
+		return r.CreateSystemNotification(entry)
+	}
+
+	row := r.db.QueryRow(
+		`INSERT INTO "system_notifications"
+            (level, category, title, message, fingerprint, occurrences, metadata, last_occurred_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+         ON CONFLICT (fingerprint) DO UPDATE SET
+            level = EXCLUDED.level,
+            category = EXCLUDED.category,
+            title = EXCLUDED.title,
+            message = EXCLUDED.message,
+            metadata = COALESCE(EXCLUDED.metadata, "system_notifications".metadata),
+            occurrences = "system_notifications".occurrences + EXCLUDED.occurrences,
+            last_occurred_at = NOW(),
+            read_at = NULL
+         RETURNING id`,
+		level, category, title, message, fingerprint, count, metadataJSON,
+	)
+	var id int64
+	if err := row.Scan(&id); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
 func (r *Repository) ListSystemNotifications(page, pageSize int, unreadOnly bool) ([]SystemNotification, bool, error) {
 	if page <= 0 {
 		page = 1

@@ -29,6 +29,13 @@ export interface SourceConfig {
   [key: string]: any;
 }
 
+export interface WhitelistConfig {
+  enabled?: boolean;
+  ips?: string[];
+  cities?: string[];
+  nonMainland?: boolean;
+}
+
 export interface WebsiteConfig {
   name: string;
   logPath?: string;
@@ -38,6 +45,7 @@ export interface WebsiteConfig {
   logRegex?: string;
   timeLayout?: string;
   sources?: SourceConfig[];
+  whitelist?: WhitelistConfig;
 }
 
 export interface SystemConfig {

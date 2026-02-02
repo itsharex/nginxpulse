@@ -179,6 +179,45 @@
                       {{ fieldError(`websites[${index}].sources`) }}
                     </div>
                   </div>
+                  <div class="setup-field setup-toggle">
+                    <label class="setup-label">{{ t('setup.fields.whitelistEnable') }}</label>
+                    <button
+                      class="setup-switch"
+                      type="button"
+                      :class="{ active: site.whitelistEnabled }"
+                      :aria-pressed="site.whitelistEnabled"
+                      @click="site.whitelistEnabled = !site.whitelistEnabled"
+                    >
+                      <span class="setup-switch-dot"></span>
+                    </button>
+                  </div>
+                  <div v-if="fieldError(`websites[${index}].whitelist`)" class="setup-error">
+                    {{ fieldError(`websites[${index}].whitelist`) }}
+                  </div>
+                  <div class="setup-field">
+                    <label class="setup-label">{{ t('setup.fields.whitelistIps') }}</label>
+                    <textarea v-model.trim="site.whitelistIPsText" class="setup-textarea" rows="3" :placeholder="t('setup.placeholders.whitelistIps')"></textarea>
+                    <div class="setup-hint">{{ t('setup.hints.whitelistIps') }}</div>
+                    <div v-if="fieldError(`websites[${index}].whitelist.ips`)" class="setup-error">
+                      {{ fieldError(`websites[${index}].whitelist.ips`) }}
+                    </div>
+                  </div>
+                  <div class="setup-field">
+                    <label class="setup-label">{{ t('setup.fields.whitelistCities') }}</label>
+                    <textarea v-model.trim="site.whitelistCitiesText" class="setup-textarea" rows="3" :placeholder="t('setup.placeholders.whitelistCities')"></textarea>
+                  </div>
+                  <div class="setup-field setup-toggle">
+                    <label class="setup-label">{{ t('setup.fields.whitelistNonMainland') }}</label>
+                    <button
+                      class="setup-switch"
+                      type="button"
+                      :class="{ active: site.whitelistNonMainland }"
+                      :aria-pressed="site.whitelistNonMainland"
+                      @click="site.whitelistNonMainland = !site.whitelistNonMainland"
+                    >
+                      <span class="setup-switch-dot"></span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -416,6 +455,10 @@ interface WebsiteDraft {
   logRegex: string;
   timeLayout: string;
   sourcesJson: string;
+  whitelistEnabled: boolean;
+  whitelistIPsText: string;
+  whitelistCitiesText: string;
+  whitelistNonMainland: boolean;
 }
 
 const props = withDefaults(defineProps<{ mode?: 'setup' | 'manage' }>(), {
@@ -537,6 +580,10 @@ function createWebsiteDraft(): WebsiteDraft {
     logRegex: '',
     timeLayout: '',
     sourcesJson: '',
+    whitelistEnabled: false,
+    whitelistIPsText: '',
+    whitelistCitiesText: '',
+    whitelistNonMainland: false,
   };
 }
 
@@ -649,6 +696,24 @@ function buildConfig(collectErrors = true): { config: ConfigPayload; errors: Fie
       }
     }
 
+    const whitelistIPs = splitList(site.whitelistIPsText);
+    const whitelistCities = splitList(site.whitelistCitiesText);
+    const whitelistEnabled = site.whitelistEnabled;
+    const whitelistNonMainland = site.whitelistNonMainland;
+    if (collectErrors && whitelistEnabled && whitelistIPs.length === 0 && whitelistCities.length === 0 && !whitelistNonMainland) {
+      errors.push({ field: `websites[${index}].whitelist`, message: t('setup.errors.whitelistEmpty') });
+    }
+
+    const whitelist =
+      whitelistEnabled || whitelistIPs.length > 0 || whitelistCities.length > 0 || whitelistNonMainland
+        ? {
+            enabled: whitelistEnabled,
+            ips: whitelistIPs,
+            cities: whitelistCities,
+            nonMainland: whitelistNonMainland,
+          }
+        : undefined;
+
     return {
       name: site.name.trim(),
       logPath: site.logPath.trim(),
@@ -658,6 +723,7 @@ function buildConfig(collectErrors = true): { config: ConfigPayload; errors: Fie
       logRegex: site.logRegex.trim(),
       timeLayout: site.timeLayout.trim(),
       sources,
+      whitelist,
     };
   });
 
@@ -889,6 +955,10 @@ function hydrateDraft(config: ConfigPayload) {
     logRegex: site.logRegex || '',
     timeLayout: site.timeLayout || '',
     sourcesJson: site.sources && site.sources.length > 0 ? JSON.stringify(site.sources, null, 2) : '',
+    whitelistEnabled: Boolean(site.whitelist?.enabled),
+    whitelistIPsText: (site.whitelist?.ips || []).join(', '),
+    whitelistCitiesText: (site.whitelist?.cities || []).join(', '),
+    whitelistNonMainland: Boolean(site.whitelist?.nonMainland),
   }));
   websiteDrafts.value = mapped.length ? mapped : [createWebsiteDraft()];
 }

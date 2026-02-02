@@ -30,14 +30,15 @@ type Config struct {
 }
 
 type WebsiteConfig struct {
-	Name       string         `json:"name"`
-	LogPath    string         `json:"logPath"`
-	Domains    []string       `json:"domains,omitempty"`
-	LogType    string         `json:"logType,omitempty"`
-	LogFormat  string         `json:"logFormat,omitempty"`
-	LogRegex   string         `json:"logRegex,omitempty"`
-	TimeLayout string         `json:"timeLayout,omitempty"`
-	Sources    []SourceConfig `json:"sources,omitempty"`
+	Name       string           `json:"name"`
+	LogPath    string           `json:"logPath"`
+	Domains    []string         `json:"domains,omitempty"`
+	LogType    string           `json:"logType,omitempty"`
+	LogFormat  string           `json:"logFormat,omitempty"`
+	LogRegex   string           `json:"logRegex,omitempty"`
+	TimeLayout string           `json:"timeLayout,omitempty"`
+	Sources    []SourceConfig   `json:"sources,omitempty"`
+	Whitelist  *WhitelistConfig `json:"whitelist,omitempty"`
 }
 
 type SourceConfig struct {
@@ -82,6 +83,13 @@ type ParseConfig struct {
 	LogFormat  string `json:"logFormat,omitempty"`
 	LogRegex   string `json:"logRegex,omitempty"`
 	TimeLayout string `json:"timeLayout,omitempty"`
+}
+
+type WhitelistConfig struct {
+	Enabled     bool     `json:"enabled"`
+	IPs         []string `json:"ips,omitempty"`
+	Cities      []string `json:"cities,omitempty"`
+	NonMainland bool     `json:"nonMainland"`
 }
 
 type SystemConfig struct {

@@ -564,13 +564,13 @@ onUnmounted(() => {
 }
 
 :global(.system-notice-dialog) {
-  width: 520px;
-  max-width: 90vw;
+  width: 720px;
+  max-width: 94vw;
 }
 
 :global(.system-failure-dialog) {
-  width: 720px;
-  max-width: 94vw;
+  width: 920px;
+  max-width: 96vw;
 }
 
 .system-failure-body {

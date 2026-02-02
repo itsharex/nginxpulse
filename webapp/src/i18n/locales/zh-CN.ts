@@ -199,6 +199,10 @@ const zhCN = {
       statusCodeInclude: 'PV 状态码白名单',
       excludePatterns: 'PV 排除规则',
       excludeIps: 'PV 排除 IP',
+      whitelistEnable: '白名单开关',
+      whitelistIps: '白名单 IP/IP 段',
+      whitelistCities: '白名单城市（包含匹配）',
+      whitelistNonMainland: '非大陆访问',
     },
     placeholders: {
       domains: 'example.com, www.example.com',
@@ -208,11 +212,14 @@ const zhCN = {
       serverPort: '8089 或 :8089',
       accessKeys: '多个密钥用逗号分隔',
       statusCodeInclude: '200, 204, 206',
+      whitelistIps: '1.1.1.1, 10.0.0.0/8, 1.1.1.1-1.1.1.255',
+      whitelistCities: '上海, 杭州, Tokyo',
     },
     hints: {
       logPath: '支持完整路径或通配符，需在容器内可访问',
       sourcesJson: '填写 sources 数组 JSON，用于 SFTP/HTTP/S3 等高级来源',
       accessKeys: '多个密钥用逗号分隔',
+      whitelistIps: '支持单 IP、CIDR 与 IP 段（使用 -）',
     },
     review: {
       summary: '站点概览',
@@ -231,6 +238,7 @@ const zhCN = {
       invalidJson: 'JSON 格式错误',
       parseJson: 'JSON 解析失败: {message}',
       sourcesArray: 'sources 必须是数组',
+      whitelistEmpty: '白名单已启用但未配置规则',
     },
     copySuccess: '已复制到剪贴板',
     copyFailed: '复制失败，请手动复制预览内容',

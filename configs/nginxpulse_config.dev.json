@@ -3,6 +3,13 @@
     {
       "name": "GZ Log Test",
       "logPath": "var/log/gz-log-read-test/*.gz",
+      "whitelist": {
+        "enabled": false,
+        "ips": [
+        ],
+        "cities": [],
+        "nonMainland": false
+      },
       "domains": ["localhost"]
     },
     {

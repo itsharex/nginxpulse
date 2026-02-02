@@ -199,6 +199,10 @@ const enUS = {
       statusCodeInclude: 'PV status allowlist',
       excludePatterns: 'PV exclude patterns',
       excludeIps: 'PV exclude IPs',
+      whitelistEnable: 'Whitelist',
+      whitelistIps: 'Whitelist IPs / ranges',
+      whitelistCities: 'Whitelist cities (contains)',
+      whitelistNonMainland: 'Non-mainland access',
     },
     placeholders: {
       domains: 'example.com, www.example.com',
@@ -208,11 +212,14 @@ const enUS = {
       serverPort: '8089 or :8089',
       accessKeys: 'Separate multiple keys with commas',
       statusCodeInclude: '200, 204, 206',
+      whitelistIps: '1.1.1.1, 10.0.0.0/8, 1.1.1.1-1.1.1.255',
+      whitelistCities: 'Shanghai, Hangzhou, Tokyo',
     },
     hints: {
       logPath: 'Use full path or glob patterns, must be accessible in container',
       sourcesJson: 'Provide sources JSON for SFTP/HTTP/S3 advanced sources',
       accessKeys: 'Separate multiple keys with commas',
+      whitelistIps: 'Supports single IP, CIDR, and ranges (use -)',
     },
     review: {
       summary: 'Website overview',
@@ -231,6 +238,7 @@ const enUS = {
       invalidJson: 'Invalid JSON format',
       parseJson: 'JSON parse failed: {message}',
       sourcesArray: 'sources must be an array',
+      whitelistEmpty: 'Whitelist is enabled but no rules are set',
     },
     copySuccess: 'Copied to clipboard',
     copyFailed: 'Copy failed. Please copy from the preview manually.',

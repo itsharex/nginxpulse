@@ -682,6 +682,31 @@ func resolveIPAPIURL() string {
 	return config.GetIPGeoAPIURL()
 }
 
+func getIPLocationLocalOnly(ip string) (string, string, bool) {
+	if ip == "" || ip == "localhost" || ip == "127.0.0.1" || ip == "::1" {
+		return "", "", false
+	}
+	if domestic, global, ok := getCachedLocation(ip); ok {
+		return domestic, global, true
+	}
+	parsed := net.ParseIP(ip)
+	if parsed == nil {
+		return "", "", false
+	}
+	if isPrivateIP(parsed) {
+		return "", "", false
+	}
+	domestic, global, _, err := queryIPLocationLocalDetailed(ip, parsed)
+	if err != nil {
+		return "", "", false
+	}
+	if domestic == "" || domestic == "未知" || global == "" || global == "未知" {
+		return domestic, global, false
+	}
+	setCachedLocation(ip, domestic, global)
+	return domestic, global, true
+}
+
 func getCachedLocation(ip string) (string, string, bool) {
 	ipGeoCacheMu.RLock()
 	entry, ok := ipGeoCache[ip]
