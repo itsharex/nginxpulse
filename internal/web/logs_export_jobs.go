@@ -62,12 +62,12 @@ func (m *logsExportManager) Create(statsFactory *analytics.StatsFactory, query a
 	if err != nil {
 		return nil, err
 	}
-	fileName := fmt.Sprintf("nginxpulse_logs_%s.csv", time.Now().Format("20060102_150405"))
+	fileName := fmt.Sprintf("nginxpulse_logs_%s.xlsx", time.Now().Format("20060102_150405"))
 	exportDir := filepath.Join(config.DataDir, "exports")
 	if err := os.MkdirAll(exportDir, 0755); err != nil {
 		return nil, err
 	}
-	filePath := filepath.Join(exportDir, fmt.Sprintf("%s.csv", jobID))
+	filePath := filepath.Join(exportDir, fmt.Sprintf("%s.xlsx", jobID))
 
 	job := &LogsExportJob{
 		ID:        jobID,
@@ -204,7 +204,7 @@ func (m *logsExportManager) run(jobID string, statsFactory *analytics.StatsFacto
 	defer file.Close()
 
 	buffered := bufio.NewWriter(file)
-	err = exportLogsCSVWithProgress(
+	err = exportLogsXLSXWithProgress(
 		buffered,
 		statsFactory,
 		query,

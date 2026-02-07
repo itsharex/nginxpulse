@@ -576,13 +576,13 @@ func SetupRoutes(
 			return
 		}
 
-		filename := fmt.Sprintf("nginxpulse_logs_%s.csv", time.Now().Format("20060102_150405"))
-		c.Header("Content-Type", csvContentType)
+		filename := fmt.Sprintf("nginxpulse_logs_%s.xlsx", time.Now().Format("20060102_150405"))
+		c.Header("Content-Type", logsExportContentType)
 		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 		c.Header("Cache-Control", "no-store")
 		c.Status(http.StatusOK)
 
-		if err := exportLogsCSV(c.Writer, statsFactory, query, c.Query("lang")); err != nil {
+		if err := exportLogsXLSX(c.Writer, statsFactory, query, c.Query("lang")); err != nil {
 			logrus.WithError(err).Error("导出日志失败")
 		}
 	})
@@ -837,9 +837,9 @@ func SetupRoutes(
 
 		filename := job.FileName
 		if filename == "" {
-			filename = fmt.Sprintf("nginxpulse_logs_%s.csv", time.Now().Format("20060102_150405"))
+			filename = fmt.Sprintf("nginxpulse_logs_%s.xlsx", time.Now().Format("20060102_150405"))
 		}
-		c.Header("Content-Type", csvContentType)
+		c.Header("Content-Type", logsExportContentType)
 		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 		c.Header("Cache-Control", "no-store")
 		c.File(job.FilePath)

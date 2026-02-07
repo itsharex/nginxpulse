@@ -1386,7 +1386,7 @@ async function cancelExportJob() {
 async function downloadExportJob(jobId: string, fallbackName?: string) {
   const response = await downloadLogsExport(jobId, currentWebsiteId.value || undefined);
   const headerName = extractExportFileName(response.headers?.['content-disposition']);
-  const fileName = headerName || fallbackName || `nginxpulse_logs_${formatExportTimestamp()}.csv`;
+  const fileName = headerName || fallbackName || `nginxpulse_logs_${formatExportTimestamp()}.xlsx`;
   const url = window.URL.createObjectURL(response.data);
   const link = document.createElement('a');
   link.href = url;
