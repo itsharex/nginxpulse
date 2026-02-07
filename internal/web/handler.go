@@ -559,6 +559,7 @@ func SetupRoutes(
 				params[key] = values[0]
 			}
 		}
+		normalizeLogsExportWebsiteID(params)
 
 		query, err := statsFactory.BuildQueryFromRequest("logs", params)
 		if err != nil {
@@ -615,6 +616,7 @@ func SetupRoutes(
 			}
 			params[key] = fmt.Sprint(value)
 		}
+		normalizeLogsExportWebsiteID(params)
 
 		query, err := statsFactory.BuildQueryFromRequest("logs", params)
 		if err != nil {
@@ -676,7 +678,13 @@ func SetupRoutes(
 	})
 
 	router.GET("/api/logs/export/list", func(c *gin.Context) {
-		websiteID := strings.TrimSpace(c.Query("id"))
+		websiteID := strings.TrimSpace(c.Query("website_id"))
+		if websiteID == "" {
+			websiteID = strings.TrimSpace(c.Query("websiteId"))
+		}
+		if websiteID == "" {
+			websiteID = strings.TrimSpace(c.Query("id"))
+		}
 		page := 1
 		pageSize := 20
 		if rawPage := strings.TrimSpace(c.Query("page")); rawPage != "" {
@@ -754,6 +762,7 @@ func SetupRoutes(
 			})
 			return
 		}
+		normalizeLogsExportWebsiteID(params)
 		query, err := statsFactory.BuildQueryFromRequest("logs", params)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -794,6 +803,16 @@ func SetupRoutes(
 		if !ok {
 			c.JSON(http.StatusNotFound, gin.H{
 				"error": "任务不存在",
+			})
+			return
+		}
+		websiteID := strings.TrimSpace(c.Query("website_id"))
+		if websiteID == "" {
+			websiteID = strings.TrimSpace(c.Query("websiteId"))
+		}
+		if websiteID != "" && job.WebsiteID != "" && job.WebsiteID != websiteID {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "导出任务与当前站点不匹配",
 			})
 			return
 		}

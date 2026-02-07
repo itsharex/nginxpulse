@@ -943,6 +943,7 @@ function buildExportParams() {
   const { statusCode, statusClass } = resolveStatusParams();
   const params: Record<string, unknown> = {
     id: currentWebsiteId.value,
+    website_id: currentWebsiteId.value,
     page: currentPage.value,
     pageSize: pageSize.value,
     sortField: sortField.value,
@@ -1138,15 +1139,18 @@ async function handleExport() {
   if (!currentWebsiteId.value || exportLoading.value) {
     return;
   }
+  stopExportPolling();
   exportLoading.value = true;
   exportDialogVisible.value = true;
   exportJobError.value = '';
+  exportJob.value = null;
   try {
     const start = await startLogsExport(buildExportParams());
     exportJob.value = {
       id: start.job_id,
       status: start.status,
       fileName: start.fileName,
+      website_id: currentWebsiteId.value,
     };
     startExportPolling();
     await refreshExportJobs();
@@ -1319,6 +1323,12 @@ async function refreshCurrentExportStatus() {
   try {
     const status = await fetchLogsExportStatus(exportJob.value.id);
     exportJob.value = status;
+    if (status.website_id && currentWebsiteId.value && status.website_id !== currentWebsiteId.value) {
+      stopExportPolling();
+      exportLoading.value = false;
+      await refreshExportJobs();
+      return;
+    }
     updateExportHistoryPolling();
     if (status.status === 'success') {
       stopExportPolling();
@@ -1374,7 +1384,7 @@ async function cancelExportJob() {
 }
 
 async function downloadExportJob(jobId: string, fallbackName?: string) {
-  const response = await downloadLogsExport(jobId);
+  const response = await downloadLogsExport(jobId, currentWebsiteId.value || undefined);
   const headerName = extractExportFileName(response.headers?.['content-disposition']);
   const fileName = headerName || fallbackName || `nginxpulse_logs_${formatExportTimestamp()}.csv`;
   const url = window.URL.createObjectURL(response.data);
@@ -1391,6 +1401,9 @@ function handleDownloadHistory(job: LogsExportJob) {
   if (!job?.id || job.status !== 'success') {
     return;
   }
+  if (job.website_id && currentWebsiteId.value && job.website_id !== currentWebsiteId.value) {
+    return;
+  }
   downloadExportJob(job.id, job.fileName);
 }
 
@@ -1398,6 +1411,7 @@ async function handleRetryHistory(job: LogsExportJob) {
   if (!job?.id || exportLoading.value) {
     return;
   }
+  stopExportPolling();
   exportLoading.value = true;
   exportJobError.value = '';
   try {
@@ -1406,6 +1420,7 @@ async function handleRetryHistory(job: LogsExportJob) {
       id: start.job_id,
       status: start.status,
       fileName: start.fileName,
+      website_id: currentWebsiteId.value,
     };
     exportDialogVisible.value = true;
     startExportPolling();
@@ -1597,6 +1612,10 @@ watch(currentWebsiteId, (value) => {
   if (value) {
     saveUserPreference('selectedWebsite', value);
   }
+  stopExportPolling();
+  exportLoading.value = false;
+  exportJob.value = null;
+  exportJobError.value = '';
   currentPage.value = 1;
   loadLogs();
 });

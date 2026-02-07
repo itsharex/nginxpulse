@@ -327,7 +327,7 @@ export const listLogsExportJobs = async (
   pageSize = 20
 ): Promise<LogsExportListResponse> => {
   const response = await client.get<ApiResponse<LogsExportListResponse>>('api/logs/export/list', {
-    params: buildParams({ id: websiteId, page, pageSize }),
+    params: buildParams({ id: websiteId, website_id: websiteId, page, pageSize }),
   });
   return response.data;
 };
@@ -348,9 +348,12 @@ export const retryLogsExport = async (
   return response.data;
 };
 
-export const downloadLogsExport = async (jobId: string): Promise<AxiosResponse<Blob>> =>
+export const downloadLogsExport = async (
+  jobId: string,
+  websiteId?: string
+): Promise<AxiosResponse<Blob>> =>
   client.get('api/logs/export/download', {
-    params: buildParams({ id: jobId }),
+    params: buildParams({ id: jobId, website_id: websiteId }),
     responseType: 'blob',
   });
 
