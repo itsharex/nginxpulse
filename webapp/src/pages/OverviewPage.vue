@@ -86,6 +86,20 @@
                 {{ tab.label }}
               </button>
             </div>
+            <div class="metrics-date-picker-wrap" :class="{ active: isSpecificDateSelected }">
+              <DatePicker
+                v-model="specificDateValue"
+                class="metrics-date-picker"
+                dateFormat="yy-mm-dd"
+                updateModelType="string"
+                :manualInput="false"
+                :maxDate="maxSelectableDate"
+                showButtonBar
+                :showClear="true"
+                :showIcon="true"
+                :placeholder="t('overview.specificDate')"
+              />
+            </div>
           </div>
         </div>
         <div class="metrics-grid">
@@ -679,6 +693,7 @@ const overviewLoading = ref(false);
 const chartError = ref('');
 const autoRefreshEnabled = ref(getUserPreference('overviewAutoRefresh', 'false') === 'true');
 const autoRefreshAllowed = computed(() => dateRange.value === 'today');
+const maxSelectableDate = new Date();
 
 function toggleAutoRefresh() {
   if (!autoRefreshAllowed.value) {
@@ -730,6 +745,19 @@ const rangeTabs = computed(() => [
   { value: 'last7days', label: t('overview.last7DaysShort') },
   { value: 'last30days', label: t('overview.last30DaysShort') },
 ]);
+const specificDateValue = computed<string | null>({
+  get: () => (isSpecificDateValue(dateRange.value) ? dateRange.value : null),
+  set: (value) => {
+    if (typeof value === 'string' && isSpecificDateValue(value)) {
+      dateRange.value = value;
+      return;
+    }
+    if (isSpecificDateValue(dateRange.value)) {
+      dateRange.value = 'today';
+    }
+  },
+});
+const isSpecificDateSelected = computed(() => isSpecificDateValue(dateRange.value));
 
 const trafficText = computed(() => formatTraffic(overall.value?.traffic ?? 0));
 
@@ -860,7 +888,7 @@ const urlRows = computed(() => buildRankingRows(urlStats.value, true));
 const entryRows = computed(() => buildRankingRows(overall.value?.entryPages, false));
 const geoRows = computed(() => buildGeoRows(geoData.value));
 
-const dailyViewDisabled = computed(() => ['today', 'yesterday'].includes(dateRange.value));
+const dailyViewDisabled = computed(() => ['today', 'yesterday'].includes(dateRange.value) || isSpecificDateValue(dateRange.value));
 
 const isDark = computed(() => theme?.isDark.value ?? false);
 
@@ -2485,6 +2513,9 @@ function formatDurationSeconds(seconds: number) {
 }
 
 function getCompareLabels(range: string) {
+  if (isSpecificDateValue(range)) {
+    return [range, getPreviousDateRangeValue(range)];
+  }
   switch (range) {
     case 'today':
       return [t('overview.todayShort'), t('overview.yesterdayShort')];
@@ -2504,6 +2535,9 @@ function getCompareLabels(range: string) {
 }
 
 function getRangeLabel(range: string) {
+  if (isSpecificDateValue(range)) {
+    return range;
+  }
   switch (range) {
     case 'today':
       return t('overview.todayShort');
@@ -2523,6 +2557,13 @@ function getRangeLabel(range: string) {
 }
 
 function getMetricCompareLabels(range: string) {
+  if (isSpecificDateValue(range)) {
+    return {
+      prev: getPreviousDateRangeValue(range),
+      forecast: t('overview.forecastCurrent'),
+      sameTime: t('overview.sameTimePrevious'),
+    };
+  }
   switch (range) {
     case 'today':
       return {
@@ -2606,6 +2647,41 @@ function normalizeSeconds(value: unknown): number | null {
     return null;
   }
   return normalized;
+}
+
+function isSpecificDateValue(range: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(range || '');
+}
+
+function getPreviousDateRangeValue(range: string) {
+  const date = parseSpecificDate(range);
+  if (!date) {
+    return t('overview.previous');
+  }
+  date.setDate(date.getDate() - 1);
+  return formatDateRangeValue(date);
+}
+
+function parseSpecificDate(value: string) {
+  if (!isSpecificDateValue(value)) {
+    return null;
+  }
+  const [year, month, day] = value.split('-').map((part) => Number(part));
+  const date = new Date(year, month - 1, day);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+  return date;
+}
+
+function formatDateRangeValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 type DetailConfig = {

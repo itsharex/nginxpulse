@@ -360,6 +360,7 @@ const zhCN = {
     yesterdayShort: '昨日',
     last7DaysShort: '近7天',
     last30DaysShort: '近30天',
+    specificDate: '指定日期',
     dayBeforeShort: '前日',
     prev7DaysShort: '前7天',
     prev30DaysShort: '前30天',

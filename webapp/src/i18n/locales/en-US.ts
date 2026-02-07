@@ -360,6 +360,7 @@ const enUS = {
     yesterdayShort: 'Yesterday',
     last7DaysShort: 'Last 7 days',
     last30DaysShort: 'Last 30 days',
+    specificDate: 'Specific date',
     dayBeforeShort: 'Day before',
     prev7DaysShort: 'Prev 7 days',
     prev30DaysShort: 'Prev 30 days',

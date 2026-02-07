@@ -1103,6 +1103,46 @@ body.dark-mode .metric-tile {
     font-size: 12px;
 }
 
+.metrics-date-picker-wrap {
+    display: inline-flex;
+    align-items: center;
+}
+
+.metrics-date-picker {
+    min-width: 152px;
+}
+
+.metrics-date-picker .p-inputtext {
+    height: 32px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.metrics-date-picker .p-datepicker-trigger {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--border);
+    background: var(--panel);
+}
+
+.metrics-date-picker-wrap.active .p-inputtext,
+.metrics-date-picker .p-inputtext:focus {
+    border-color: rgba(var(--primary-color-rgb), 0.45);
+    background: rgba(var(--primary-color-rgb), 0.09);
+    color: var(--primary);
+}
+
+body.dark-mode .metrics-date-picker-wrap.active .p-inputtext,
+body.dark-mode .metrics-date-picker .p-inputtext:focus {
+    background: rgba(var(--primary-color-rgb), 0.16);
+}
+
 .range-tab {
     border: 1px solid var(--border);
     background: var(--panel);

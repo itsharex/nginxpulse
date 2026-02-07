@@ -110,4 +110,12 @@
     width: 100%;
     flex-wrap: wrap;
   }
+
+  .metrics-date-picker-wrap {
+    width: 100%;
+  }
+
+  .metrics-date-picker {
+    width: min(240px, 100%);
+  }
 }
