@@ -38,26 +38,33 @@
               :placeholder="t('logs.searchPlaceholder')"
               @keyup.enter="applySearch"
             />
-            <Button class="search-btn" severity="primary" @click="applySearch">{{ t('common.search') }}</Button>
-            <span class="action-divider" aria-hidden="true"></span>
-            <Button
-              class="reparse-btn"
-              outlined
-              severity="danger"
-              :label="reparseButtonLabel"
-              :disabled="!currentWebsiteId || isParsingBusy"
-              @click="openReparseDialog"
-            />
-            <span class="action-divider" aria-hidden="true"></span>
-            <Button
-              class="export-btn"
-              outlined
-              severity="secondary"
-              :label="exportButtonLabel"
-              :loading="exportLoading"
-              :disabled="!currentWebsiteId || exportLoading"
-              @click="handleExport"
-            />
+            <div class="search-actions">
+              <Button
+                class="search-btn"
+                severity="primary"
+                icon="pi pi-search"
+                :label="t('common.search')"
+                @click="applySearch"
+              />
+              <Button
+                class="reparse-btn action-btn"
+                outlined
+                severity="danger"
+                icon="pi pi-refresh"
+                :label="reparseButtonLabel"
+                :disabled="!currentWebsiteId || isParsingBusy"
+                @click="openReparseDialog"
+              />
+              <Button
+                class="export-btn action-btn"
+                severity="success"
+                icon="pi pi-file-export"
+                :label="exportButtonLabel"
+                :loading="exportLoading"
+                :disabled="!currentWebsiteId || exportLoading"
+                @click="handleExport"
+              />
+            </div>
           </div>
         <div class="filter-row filter-row-fields">
           <div class="filter-row-left">
@@ -2118,7 +2125,7 @@ function nextPage() {
 .search-box {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex: 0 0 auto;
   width: 100%;
   min-width: 320px;
@@ -2126,16 +2133,34 @@ function nextPage() {
 }
 
 .search-input {
-  flex: 1 1 240px;
-  min-width: 200px;
+  flex: 1 1 380px;
+  min-width: 240px;
   max-width: none;
+}
+
+.search-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  margin-left: auto;
+  border-radius: calc(var(--radius-sm) + 2px);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel-muted) 90%, var(--panel) 10%);
+  flex: 0 0 auto;
 }
 
 .search-btn {
   font-weight: 600;
   border-radius: var(--radius-sm);
-  min-width: 88px;
-  padding: 0 16px;
+  min-width: 82px;
+  padding: 0 14px;
+}
+
+.action-btn {
+  border-radius: var(--radius-sm);
+  min-width: 0;
+  padding: 0 10px;
 }
 
 .filter-row {
@@ -2533,13 +2558,6 @@ function nextPage() {
   border-radius: var(--radius-xs);
 }
 
-.action-divider {
-  width: 1px;
-  height: 22px;
-  background: var(--border);
-  opacity: 0.7;
-}
-
 .advanced-toggle {
   display: inline-flex;
   align-items: center;
@@ -2562,25 +2580,29 @@ function nextPage() {
 }
 
 .reparse-btn {
-  border-radius: var(--radius-sm);
   font-weight: 600;
-  min-width: 118px;
-  padding: 0 12px;
+  white-space: nowrap;
 }
 
 .export-btn {
-  border-radius: var(--radius-sm);
   font-weight: 600;
-  min-width: 112px;
-  padding: 0 16px;
-  border-color: rgba(34, 197, 94, 0.4);
-  background: rgba(34, 197, 94, 0.12);
-  color: #166534;
+  white-space: nowrap;
+  color: #ffffff;
+  border-color: #16a34a;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  box-shadow: 0 8px 16px rgba(22, 163, 74, 0.28);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 
 .export-btn:not(:disabled):hover {
-  background: rgba(34, 197, 94, 0.18);
-  border-color: rgba(34, 197, 94, 0.6);
+  border-color: #15803d;
+  background: linear-gradient(135deg, #34d399 0%, #16a34a 100%);
+  box-shadow: 0 10px 18px rgba(21, 128, 61, 0.34);
+}
+
+.export-btn:not(:disabled):active {
+  transform: translateY(1px);
+  box-shadow: 0 6px 12px rgba(21, 128, 61, 0.28);
 }
 
 .reparse-dialog :deep(.p-dialog-content) {
@@ -2659,13 +2681,18 @@ function nextPage() {
 
   .search-box {
     width: 100%;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     min-width: 0;
     flex: 0 0 auto;
   }
 
   .search-input {
-    min-width: 160px;
+    flex-basis: 320px;
+    min-width: 200px;
+  }
+
+  .search-actions {
+    margin-left: 0;
   }
 
   .filter-row-fields {
@@ -2690,6 +2717,12 @@ function nextPage() {
     flex-wrap: wrap;
   }
 
+  .search-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
   .filter-row-fields {
     margin-left: 0;
     flex-direction: column;
@@ -2709,10 +2742,6 @@ function nextPage() {
 
   .filter-row {
     gap: 10px;
-  }
-
-  .action-divider {
-    display: none;
   }
 
   .pagination-controls {
