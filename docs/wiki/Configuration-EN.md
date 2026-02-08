@@ -78,6 +78,22 @@
 2. **Prefix isolation**: server middleware strips the `/<base>` prefix and rejects root-path requests; API is only available at `/<base>/api/*`.
 3. **Static asset compatibility**: `/app-config.js` and assets are kept accessible so the frontend can boot correctly.
 
+### Mobile Bottom Navigation (URL override)
+On mobile (`/m/`), you can temporarily override navigation position via URL query parameters. This is useful for debugging, demos, or A/B checks:
+
+- Priority: `tabbarBottom` overrides `tabbar`.
+- Truthy values (bottom tabbar): `1`, `true`, `yes`, `on`, `bottom`.
+- Falsy values (top navigation): `0`, `false`, `no`, `off`, `top`.
+- Without parameters, default behavior applies (PWA defaults to bottom tabbar; non-PWA follows frontend default config).
+
+Examples:
+```bash
+# force top navigation.
+https://example.com/m/?tabbarBottom=true
+# force bottom tabbar.
+https://example.com/m/?tabbarBottom=false
+```
+
 ### websites[]
 - `name` (string, required): site name. ID is derived from this.
 - `logPath` (string, required): log path, supports `*` glob.

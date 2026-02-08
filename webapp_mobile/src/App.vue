@@ -346,7 +346,19 @@ const tabbarRef = ref<any>(null);
 const topMenuVisible = ref(false);
 const isPwaMode = ref(false);
 const pwaPromptEnabled = ref(false);
-const tabbarAtBottom = computed(() => (isPwaMode.value ? true : MOBILE_TABBAR_BOTTOM));
+const tabbarQueryOverride = computed<boolean | null>(() => {
+  const byTabbarBottom = parseTabbarQueryOverride(route.query.tabbarBottom);
+  if (byTabbarBottom !== null) {
+    return byTabbarBottom;
+  }
+  return parseTabbarQueryOverride(route.query.tabbar);
+});
+const tabbarAtBottom = computed(() => {
+  if (tabbarQueryOverride.value !== null) {
+    return tabbarQueryOverride.value;
+  }
+  return isPwaMode.value ? true : MOBILE_TABBAR_BOTTOM;
+});
 const pwaPromptVisible = ref(false);
 const pwaGuideVisible = ref(false);
 const pwaPromptMode = ref<'ios' | 'install' | 'none'>('none');
@@ -516,6 +528,28 @@ const applyUiTokens = () => {
   root.style.setProperty('--panel-glow-alpha', String(PANEL_GLOW_ALPHA));
   root.style.setProperty('--metric-tint-alpha', String(METRIC_TINT_ALPHA));
   root.style.setProperty('--metric-tint-alpha-dark', String(METRIC_TINT_ALPHA_DARK));
+};
+
+const parseTabbarQueryOverride = (value: unknown): boolean | null => {
+  const raw = Array.isArray(value) ? value[value.length - 1] : value;
+  if (raw === undefined || raw === null) {
+    return null;
+  }
+
+  const normalized = String(raw).trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  if (['1', 'true', 'yes', 'on', 'bottom'].includes(normalized)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no', 'off', 'top'].includes(normalized)) {
+    return false;
+  }
+
+  return null;
 };
 
 const getStandaloneMode = () => {

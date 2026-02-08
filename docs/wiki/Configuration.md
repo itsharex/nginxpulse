@@ -78,6 +78,22 @@
 2. **强制前缀隔离**：服务端中间件会剥离 `/<base>` 前缀并拒绝根路径请求，API 仅允许 `/<base>/api/*` 访问。
 3. **静态资源兼容**：`/app-config.js` 与静态资源不做前缀绑定，保证资源可被前端加载。
 
+### 移动端底部导航栏（URL 参数覆盖）
+移动端（`/m/`）支持通过地址栏参数临时覆盖导航栏位置，适合调试、演示或 A/B 对比：
+
+- 参数优先级：`tabbarBottom` 高于 `tabbar`。
+- 真值（底部导航）：`1`、`true`、`yes`、`on`、`bottom`。
+- 假值（顶部导航）：`0`、`false`、`no`、`off`、`top`。
+- 未传参数时走默认逻辑（PWA 仍默认底部导航；非 PWA 走前端默认配置）。
+
+示例：
+```bash
+# 强制顶部导航
+https://example.com/m/?tabbarBottom=true
+# 强制底部导航
+https://example.com/m/?tabbarBottom=false
+```
+
 ### websites[] 站点配置
 - `name` (string, 必填): 站点名称，站点 ID 由该字段生成（改名会产生新站点）。
 - `logPath` (string, 必填): 日志路径，支持通配符 `*`。
