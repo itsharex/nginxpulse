@@ -20,7 +20,7 @@
       </template>
       <template #left>
         <div class="mobile-brand">
-          <img src="/brand-mark.svg" alt="NginxPulse" class="brand-logo" />
+          <img :src="brandMarkSrc" alt="NginxPulse" class="brand-logo" />
         </div>
       </template>
       <template #right>
@@ -127,7 +127,7 @@
     <transition name="pwa-banner-fade">
       <div v-if="pwaPromptVisible" class="pwa-banner" :class="{ 'with-tabbar': tabbarAtBottom }">
         <div class="pwa-banner__icon">
-          <img src="/brand-mark.svg" alt="NginxPulse" />
+          <img :src="brandMarkSrc" alt="NginxPulse" />
         </div>
         <div class="pwa-banner__content">
           <div class="pwa-banner__title">{{ pwaTitle }}</div>
@@ -267,6 +267,7 @@ import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { fetchAppStatus } from '@/api';
 import { getLocaleFromQuery, getStoredLocale, normalizeLocale, setLocale } from '@/i18n';
+import { getWebBasePath } from '@/utils';
 import {
   ACTION_SHEET_DURATION,
   HERO_ACCENT_ALPHA,
@@ -322,6 +323,7 @@ const ACCESS_KEY_EVENT = 'nginxpulse:access-key-required';
 const PWA_PROMPT_DISMISS_KEY = 'nginxpulse_pwa_prompt_dismissed_at';
 const PWA_PROMPT_THROTTLE_DAYS = 14;
 const TABBAR_OVERRIDE_STORAGE_KEY = 'nginxpulse_mobile_tabbar_bottom_override';
+const brandMarkSrc = `${getWebBasePath() || ''}/brand-mark.svg`;
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
