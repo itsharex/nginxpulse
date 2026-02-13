@@ -36,17 +36,6 @@ type NginxLogRecord struct {
 	GlobalLocation   string    `json:"global_location"`
 }
 
-type IPGeoAnomalyLog struct {
-	ID               int64  `json:"id"`
-	IP               string `json:"ip"`
-	Timestamp        int64  `json:"timestamp"`
-	Time             string `json:"time"`
-	Method           string `json:"method"`
-	URL              string `json:"url"`
-	DomesticLocation string `json:"domestic_location"`
-	GlobalLocation   string `json:"global_location"`
-}
-
 type IPGeoAPIFailure struct {
 	ID         int64     `json:"id"`
 	IP         string    `json:"ip"`
@@ -499,12 +488,13 @@ func (r *Repository) UpsertIPGeoCache(entries map[string]IPGeoCacheEntry) error 
 		if ip == "" {
 			continue
 		}
+		domestic, global := normalizeIPGeoLocation(strings.TrimSpace(entry.Domestic), strings.TrimSpace(entry.Global))
 		source := strings.TrimSpace(entry.Source)
 		if source == "" {
 			source = "unknown"
 		}
 		values = append(values, "(?, ?, ?, ?)")
-		args = append(args, ip, entry.Domestic, entry.Global, source)
+		args = append(args, ip, domestic, global, source)
 	}
 	if len(values) == 0 {
 		return nil
@@ -921,174 +911,6 @@ func (r *Repository) GetSystemNotificationUnreadCount() (int64, error) {
 	return count, nil
 }
 
-func (r *Repository) DetectIPGeoAnomalies(websiteID string, limit int) (int, []string, error) {
-	if limit <= 0 {
-		limit = 5
-	}
-
-	if websiteID == "" {
-		total := 0
-		samples := make([]string, 0, limit)
-		for _, id := range config.GetAllWebsiteIDs() {
-			count, siteSamples, err := r.detectIPGeoAnomaliesForWebsite(id, limit-len(samples))
-			if err != nil {
-				return 0, nil, err
-			}
-			total += count
-			for _, sample := range siteSamples {
-				if len(samples) >= limit {
-					break
-				}
-				samples = append(samples, fmt.Sprintf("%s: %s", id, sample))
-			}
-		}
-		return total, samples, nil
-	}
-
-	return r.detectIPGeoAnomaliesForWebsite(websiteID, limit)
-}
-
-func (r *Repository) FetchIPGeoAnomalyLogs(websiteID string, page, pageSize int) ([]IPGeoAnomalyLog, error) {
-	if page <= 0 {
-		page = 1
-	}
-	if pageSize <= 0 {
-		pageSize = 50
-	}
-	if pageSize > 500 {
-		pageSize = 500
-	}
-	logTable := fmt.Sprintf("%s_nginx_logs", websiteID)
-	exists, err := r.tableExists(logTable)
-	if err != nil || !exists {
-		return nil, err
-	}
-	ipTable := fmt.Sprintf("%s_dim_ip", websiteID)
-	urlTable := fmt.Sprintf("%s_dim_url", websiteID)
-	locationTable := fmt.Sprintf("%s_dim_location", websiteID)
-
-	args := make([]interface{}, 0, len(ipGeoAnomalyKeywords)*2)
-	whereClause := buildIPGeoAnomalyWhereClause("loc.domestic", "loc.global", &args)
-	if whereClause == "" {
-		return nil, nil
-	}
-	offset := (page - 1) * pageSize
-	query := fmt.Sprintf(
-		`SELECT l.id, l.timestamp, l.method, url.url, ip.ip, loc.domestic, loc.global
-         FROM "%s" AS l
-         JOIN "%s" AS ip ON l.ip_id = ip.id
-         JOIN "%s" AS url ON l.url_id = url.id
-         JOIN "%s" AS loc ON l.location_id = loc.id
-         WHERE %s
-         ORDER BY l.timestamp DESC
-         LIMIT ? OFFSET ?`,
-		logTable, ipTable, urlTable, locationTable, whereClause,
-	)
-	args = append(args, pageSize, offset)
-
-	rows, err := r.db.Query(sqlutil.ReplacePlaceholders(query), args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	logs := make([]IPGeoAnomalyLog, 0, pageSize)
-	for rows.Next() {
-		var entry IPGeoAnomalyLog
-		if err := rows.Scan(&entry.ID, &entry.Timestamp, &entry.Method, &entry.URL, &entry.IP, &entry.DomesticLocation, &entry.GlobalLocation); err != nil {
-			return nil, err
-		}
-		entry.Time = time.Unix(entry.Timestamp, 0).Format("2006-01-02 15:04:05")
-		logs = append(logs, entry)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return logs, nil
-}
-
-func (r *Repository) detectIPGeoAnomaliesForWebsite(websiteID string, limit int) (int, []string, error) {
-	tableName := fmt.Sprintf("%s_dim_location", websiteID)
-	exists, err := r.tableExists(tableName)
-	if err != nil || !exists {
-		return 0, nil, err
-	}
-
-	args := make([]interface{}, 0, len(ipGeoAnomalyKeywords)*2)
-	whereClause := buildIPGeoAnomalyWhereClause("domestic", "global", &args)
-	if whereClause == "" {
-		return 0, nil, nil
-	}
-
-	query := sqlutil.ReplacePlaceholders(fmt.Sprintf(`SELECT domestic, global FROM "%s" WHERE %s`, tableName, whereClause))
-	rows, err := r.db.Query(query, args...)
-	if err != nil {
-		return 0, nil, err
-	}
-	defer rows.Close()
-
-	count := 0
-	samples := make([]string, 0, limit)
-	for rows.Next() {
-		var domestic string
-		var global string
-		if err := rows.Scan(&domestic, &global); err != nil {
-			return 0, nil, err
-		}
-		if !isIPGeoAnomalyLabel(domestic, global) {
-			continue
-		}
-		count++
-		if len(samples) < limit {
-			samples = append(samples, domestic)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return 0, nil, err
-	}
-	return count, samples, nil
-}
-
-var ipGeoAnomalyKeywords = []string{
-	"电信", "联通", "移动", "铁通", "广电", "网通", "教育网", "长城宽带", "有线", "鹏博士",
-}
-
-func buildIPGeoAnomalyWhereClause(domesticColumn, globalColumn string, args *[]interface{}) string {
-	keywordConditions := make([]string, 0, len(ipGeoAnomalyKeywords))
-	for _, keyword := range ipGeoAnomalyKeywords {
-		keywordConditions = append(keywordConditions, fmt.Sprintf("%s ILIKE ?", domesticColumn))
-		*args = append(*args, "%"+keyword+"%")
-	}
-	if len(keywordConditions) == 0 {
-		return ""
-	}
-
-	excluded := []string{"未知", "本地", "内网", "本地网络", "待解析", "解析中"}
-	excludedPlaceholders := make([]string, 0, len(excluded))
-	for range excluded {
-		excludedPlaceholders = append(excludedPlaceholders, "?")
-	}
-	for _, value := range excluded {
-		*args = append(*args, value)
-	}
-
-	chinaConditions := []string{
-		fmt.Sprintf("%s = ?", globalColumn),
-		fmt.Sprintf("LOWER(%s) = ?", globalColumn),
-	}
-	*args = append(*args, "中国", "china")
-
-	return fmt.Sprintf(
-		`%s IS NOT NULL AND %s <> '' AND (%s) AND %s NOT IN (%s) AND (%s)`,
-		domesticColumn,
-		domesticColumn,
-		strings.Join(keywordConditions, " OR "),
-		domesticColumn,
-		strings.Join(excludedPlaceholders, ", "),
-		strings.Join(chinaConditions, " OR "),
-	)
-}
-
 func isChinaGlobalLabel(value string) bool {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
@@ -1100,29 +922,50 @@ func isChinaGlobalLabel(value string) bool {
 	return strings.EqualFold(trimmed, "china")
 }
 
-func isIPGeoAnomalyLabel(domestic, global string) bool {
-	if !isChinaGlobalLabel(global) {
-		return false
+var ipGeoISPKeywords = []string{
+	"电信", "联通", "移动", "铁通", "广电", "网通", "教育网", "长城宽带", "有线", "鹏博士",
+}
+
+func normalizeIPGeoLocation(domestic, global string) (string, string) {
+	domestic = strings.TrimSpace(domestic)
+	global = strings.TrimSpace(global)
+	if domestic == "" || !isChinaGlobalLabel(global) {
+		return domestic, global
 	}
-	trimmed := strings.TrimSpace(domestic)
-	if trimmed == "" {
-		return false
+
+	cleaned := stripIPGeoISPKeywords(domestic)
+	if cleaned == "" {
+		cleaned = "中国"
 	}
-	if trimmed == "未知" || trimmed == "本地" || trimmed == "内网" || trimmed == "本地网络" || trimmed == "待解析" || trimmed == "解析中" {
-		return false
+	return cleaned, global
+}
+
+func stripIPGeoISPKeywords(domestic string) string {
+	parts := strings.Split(domestic, "·")
+	cleanedParts := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, raw := range parts {
+		part := strings.TrimSpace(raw)
+		if part == "" {
+			continue
+		}
+		for _, keyword := range ipGeoISPKeywords {
+			part = strings.ReplaceAll(part, keyword, "")
+		}
+		part = strings.TrimSpace(strings.Trim(part, "-_/|,，;；()（）[]{}"))
+		if part == "" || part == "0" || part == "未知" {
+			continue
+		}
+		if isISPKeyword(part) {
+			continue
+		}
+		if _, ok := seen[part]; ok {
+			continue
+		}
+		seen[part] = struct{}{}
+		cleanedParts = append(cleanedParts, part)
 	}
-	parts := strings.Split(trimmed, "·")
-	if len(parts) == 0 {
-		return false
-	}
-	tail := strings.TrimSpace(parts[len(parts)-1])
-	if tail == "" {
-		return false
-	}
-	if len(parts) == 1 {
-		return isISPKeyword(tail)
-	}
-	return isISPKeyword(tail)
+	return strings.Join(cleanedParts, "·")
 }
 
 func isISPKeyword(value string) bool {
@@ -1136,7 +979,7 @@ func isISPKeyword(value string) bool {
 			return false
 		}
 	}
-	for _, keyword := range ipGeoAnomalyKeywords {
+	for _, keyword := range ipGeoISPKeywords {
 		if strings.Contains(clean, keyword) {
 			return true
 		}
@@ -1928,6 +1771,7 @@ func (r *Repository) updateIPGeoLocationsForWebsiteOnce(
 		}
 		domestic := strings.TrimSpace(entry.Domestic)
 		global := strings.TrimSpace(entry.Global)
+		domestic, global = normalizeIPGeoLocation(domestic, global)
 		if domestic == "" && global == "" {
 			continue
 		}
@@ -1989,14 +1833,14 @@ type aggStatements struct {
 }
 
 type sessionStatements struct {
-	selectState      *sql.Stmt
-	upsertState      *sql.Stmt
-	insertSession    *sql.Stmt
-	updateSession    *sql.Stmt
+	selectState         *sql.Stmt
+	upsertState         *sql.Stmt
+	insertSession       *sql.Stmt
+	updateSession       *sql.Stmt
 	lockSessionKey      *sql.Stmt
 	lockAggSessionDaily *sql.Stmt
-	upsertDaily      *sql.Stmt
-	upsertEntryDaily *sql.Stmt
+	upsertDaily         *sql.Stmt
+	upsertEntryDaily    *sql.Stmt
 }
 
 type aggCounts struct {
@@ -2416,14 +2260,14 @@ func prepareSessionStatements(tx *sql.Tx, websiteID string) (*sessionStatements,
 	}
 
 	return &sessionStatements{
-		selectState:      selectState,
-		upsertState:      upsertState,
-		insertSession:    insertSession,
-		updateSession:    updateSession,
+		selectState:         selectState,
+		upsertState:         upsertState,
+		insertSession:       insertSession,
+		updateSession:       updateSession,
 		lockSessionKey:      lockSessionKey,
 		lockAggSessionDaily: lockAggSessionDaily,
-		upsertDaily:      upsertDaily,
-		upsertEntryDaily: upsertEntryDaily,
+		upsertDaily:         upsertDaily,
+		upsertEntryDaily:    upsertEntryDaily,
 	}, nil
 }
 

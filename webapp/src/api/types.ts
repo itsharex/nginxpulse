@@ -158,24 +158,6 @@ export interface RealtimeStats {
   locations: RealtimeSeriesItem[];
 }
 
-export interface IPGeoAnomalyResponse {
-  has_issue: boolean;
-  count: number;
-  samples?: string[];
-  logs?: IPGeoAnomalyLog[];
-}
-
-export interface IPGeoAnomalyLog {
-  id: number;
-  ip: string;
-  timestamp: number;
-  time?: string;
-  method?: string;
-  url?: string;
-  domestic_location?: string;
-  global_location?: string;
-}
-
 export interface LogsExportStartResponse {
   job_id: string;
   status: string;

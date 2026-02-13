@@ -523,18 +523,6 @@ const enUS = {
     ipGeoParsing: 'Resolving IP geolocation; location stats may be incomplete.',
     ipGeoParsingProgress: 'Resolving IP geolocation{progress}, est. remaining {remaining}.',
     ipGeoParsingProgressOnly: 'Resolving IP geolocation{progress}, estimating remaining time...',
-    ipGeoIssueTitle: 'IP Geolocation Issue',
-    ipGeoIssueBody:
-      'We found abnormal IP location values for “{name}” (e.g. City · ISP). Select the logs you want to fix.',
-    ipGeoIssueNote:
-      'Confirming only clears cache for selected IPs and reparses related logs. It will not wipe all data.',
-    ipGeoIssueConfirm: 'Confirm fixes',
-    ipGeoIssueCancel: 'Cancel',
-    ipGeoIssueEmpty: 'Please select at least one log to fix.',
-    ipGeoIssueEmptyList: 'No abnormal logs to fix.',
-    ipGeoIssueScrollHint: 'Scroll to load more.',
-    ipGeoIssueLoadingMore: 'Loading more...',
-    ipGeoIssueError: 'Fix failed. Please try again.',
     parsingPending: 'Selected range is still parsing; data may be incomplete.',
     backfillParsing: 'Parsing older logs (7+ days) {progress}; range may be incomplete.',
     time: 'Time',
