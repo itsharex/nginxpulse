@@ -455,6 +455,8 @@ const enUS = {
     ipAvg: 'Avg. pageviews per IP',
     uvAvg: 'Avg. pageviews per UV',
     changeRate: 'Change rate',
+    prevDate: 'Previous day',
+    nextDate: 'Next day',
     yesterday: 'Yesterday',
     prevDay: 'Day before',
     trendTitle: 'Yesterday IP traffic trend',

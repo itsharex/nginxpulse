@@ -20,15 +20,37 @@
           </div>
           <div class="site-select-pill">
             <span class="site-label">{{ t('common.date') }}</span>
-            <DatePicker
-              v-model="currentDate"
-              class="daily-date-picker toolbar-date-picker"
-              dateFormat="yy-mm-dd"
-              updateModelType="string"
-              :showClear="false"
-              showButtonBar
-              :showIcon="true"
-            />
+            <div class="daily-date-control">
+              <button
+                type="button"
+                class="daily-date-nav-btn"
+                :title="t('daily.prevDate')"
+                :aria-label="t('daily.prevDate')"
+                @click="goToPrevDate"
+              >
+                <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+              </button>
+              <DatePicker
+                v-model="currentDate"
+                class="daily-date-picker toolbar-date-picker"
+                dateFormat="yy-mm-dd"
+                updateModelType="string"
+                :maxDate="maxDate"
+                :showClear="false"
+                showButtonBar
+                :showIcon="true"
+              />
+              <button
+                type="button"
+                class="daily-date-nav-btn"
+                :title="t('daily.nextDate')"
+                :aria-label="t('daily.nextDate')"
+                :disabled="!canGoNextDay"
+                @click="goToNextDate"
+              >
+                <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
         </template>
         <template #utility>
@@ -491,9 +513,11 @@ const websites = ref<WebsiteInfo[]>([]);
 const websitesLoading = ref(true);
 const currentWebsiteId = ref('');
 const currentDate = ref(formatDate(new Date()));
+const maxDate = new Date();
 const router = useRouter();
 const { t, n, locale } = useI18n({ useScope: 'global' });
 const currentLocale = computed(() => normalizeLocale(locale.value));
+const canGoNextDay = computed(() => currentDate.value < formatDate(maxDate));
 
 const overall = ref<Record<string, any> | null>(null);
 const sessionSummary = ref<Record<string, any> | null>(null);
@@ -638,6 +662,11 @@ watch(currentWebsiteId, (value) => {
 });
 
 watch(currentDate, (value) => {
+  const normalizedDate = normalizeDate(value);
+  if (normalizedDate !== value) {
+    currentDate.value = normalizedDate;
+    return;
+  }
   if (value) {
     saveUserPreference('dailyReportDate', value);
   }
@@ -665,11 +694,22 @@ watch(deviceCards, () => {
 function initDateFromQuery() {
   const queryDate = getDateFromQuery();
   const savedDate = getUserPreference('dailyReportDate', '');
-  const defaultDate = queryDate || savedDate || formatDate(new Date());
+  const defaultDate = normalizeDate(queryDate || savedDate || formatDate(new Date()));
   currentDate.value = defaultDate;
   if (queryDate) {
     saveUserPreference('dailyReportDate', defaultDate);
   }
+}
+
+function goToPrevDate() {
+  currentDate.value = shiftDate(currentDate.value, -1);
+}
+
+function goToNextDate() {
+  if (!canGoNextDay.value) {
+    return;
+  }
+  currentDate.value = shiftDate(currentDate.value, 1);
 }
 
 async function loadWebsites() {
@@ -1354,10 +1394,21 @@ function isSearchEngine(value: string) {
 function shiftDate(dateStr: string, offsetDays: number) {
   const date = new Date(dateStr);
   if (Number.isNaN(date.getTime())) {
-    return formatDate(new Date());
+    return formatDate(maxDate);
   }
   date.setDate(date.getDate() + offsetDays);
-  return formatDate(date);
+  return normalizeDate(formatDate(date));
+}
+
+function normalizeDate(dateStr: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) {
+    return formatDate(maxDate);
+  }
+  const today = formatDate(maxDate);
+  if (dateStr > today) {
+    return today;
+  }
+  return dateStr;
 }
 
 function getDateFromQuery() {
@@ -1416,6 +1467,42 @@ function buildDayTimeRange(dateStr: string) {
 
 .daily-date-picker {
   min-width: 190px;
+}
+
+.daily-date-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.daily-date-nav-btn {
+  width: var(--toolbar-item-height);
+  height: var(--toolbar-item-height);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(var(--primary-color-rgb), 0.2);
+  background: linear-gradient(180deg, rgba(var(--primary-color-rgb), 0.1), rgba(var(--primary-color-rgb), 0.04));
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.daily-date-nav-btn i {
+  font-size: 18px;
+}
+
+.daily-date-nav-btn:hover:not(:disabled) {
+  border-color: rgba(var(--primary-color-rgb), 0.48);
+  color: var(--primary);
+  background: rgba(var(--primary-color-rgb), 0.14);
+  box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.12);
+}
+
+.daily-date-nav-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .daily-kpi-grid {
@@ -1947,7 +2034,12 @@ function buildDayTimeRange(dateStr: string) {
 }
 
 @media (max-width: 768px) {
+  .daily-date-control {
+    width: 100%;
+  }
+
   .daily-date-picker {
+    flex: 1;
     min-width: 0;
     width: 100%;
   }

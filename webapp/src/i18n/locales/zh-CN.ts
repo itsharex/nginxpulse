@@ -455,6 +455,8 @@ const zhCN = {
     ipAvg: '每个 IP 平均贡献浏览量',
     uvAvg: '每个 UV 平均贡献浏览量',
     changeRate: '变化率',
+    prevDate: '上一天',
+    nextDate: '下一天',
     yesterday: '昨日',
     prevDay: '前日',
     trendTitle: '昨日 IP 流量趋势',
