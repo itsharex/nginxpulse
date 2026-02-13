@@ -120,7 +120,7 @@
               <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in refererItems" :key="item.name">
-              <td>{{ item.name }}</td>
+              <td :title="item.name">{{ item.name }}</td>
               <td class="realtime-count-col">{{ formatCount(item.count) }}</td>
             </tr>
           </tbody>
@@ -173,7 +173,7 @@
               <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in pageItems" :key="item.name">
-              <td>{{ item.name }}</td>
+              <td :title="item.name">{{ item.name }}</td>
               <td class="realtime-count-col">{{ formatCount(item.count) }}</td>
             </tr>
           </tbody>
@@ -226,7 +226,7 @@
               <td colspan="2">{{ t('realtime.noData') }}</td>
             </tr>
             <tr v-else v-for="item in entryItems" :key="item.name">
-              <td>{{ item.name }}</td>
+              <td :title="item.name">{{ item.name }}</td>
               <td class="realtime-count-col">{{ formatCount(item.count) }}</td>
             </tr>
           </tbody>

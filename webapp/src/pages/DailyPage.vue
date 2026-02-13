@@ -224,7 +224,7 @@
                 <td colspan="4">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in refererRows" :key="row.label">
-                <td>{{ row.label }}</td>
+                <td :title="row.label">{{ row.label }}</td>
                 <td>{{ row.valueText }}</td>
                 <td :class="row.deltaClass">{{ row.deltaText }}</td>
                 <td :class="row.rateClass">{{ row.rateText }}</td>
@@ -245,7 +245,7 @@
                 <td colspan="4">{{ t('common.noData') }}</td>
               </tr>
               <tr v-else v-for="row in searchRows" :key="row.label">
-                <td>{{ row.label }}</td>
+                <td :title="row.label">{{ row.label }}</td>
                 <td>{{ row.valueText }}</td>
                 <td :class="row.deltaClass">{{ row.deltaText }}</td>
                 <td :class="row.rateClass">{{ row.rateText }}</td>
@@ -318,7 +318,7 @@
             <td colspan="5">{{ t('common.noData') }}</td>
           </tr>
             <tr v-else v-for="row in contentRows" :key="row.label">
-              <td>{{ row.label }}</td>
+              <td :title="row.label">{{ row.label }}</td>
               <td>{{ row.uvText }}</td>
               <td :class="row.uvRateClass">{{ row.uvRateText }}</td>
               <td>{{ row.pvText }}</td>
