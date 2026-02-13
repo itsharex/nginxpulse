@@ -926,6 +926,94 @@ var ipGeoISPKeywords = []string{
 	"电信", "联通", "移动", "铁通", "广电", "网通", "教育网", "长城宽带", "有线", "鹏博士",
 }
 
+var ipGeoIDCKeywords = []string{
+	"机房", "idc", "data center", "datacenter", "数据中心",
+	"腾讯", "腾讯云",
+	"阿里", "阿里云",
+	"百度", "百度云",
+	"华为", "华为云",
+	"京东", "京东云",
+	"字节", "火山", "火山引擎",
+	"金山", "金山云",
+	"青云", "ucloud",
+	"aws", "azure", "gcp",
+}
+
+var chinaProvincePatterns = []struct {
+	pattern  string
+	province string
+}{
+	{pattern: "北京市", province: "北京"},
+	{pattern: "天津市", province: "天津"},
+	{pattern: "上海市", province: "上海"},
+	{pattern: "重庆市", province: "重庆"},
+	{pattern: "河北省", province: "河北"},
+	{pattern: "山西省", province: "山西"},
+	{pattern: "辽宁省", province: "辽宁"},
+	{pattern: "吉林省", province: "吉林"},
+	{pattern: "黑龙江省", province: "黑龙江"},
+	{pattern: "江苏省", province: "江苏"},
+	{pattern: "浙江省", province: "浙江"},
+	{pattern: "安徽省", province: "安徽"},
+	{pattern: "福建省", province: "福建"},
+	{pattern: "江西省", province: "江西"},
+	{pattern: "山东省", province: "山东"},
+	{pattern: "河南省", province: "河南"},
+	{pattern: "湖北省", province: "湖北"},
+	{pattern: "湖南省", province: "湖南"},
+	{pattern: "广东省", province: "广东"},
+	{pattern: "海南省", province: "海南"},
+	{pattern: "四川省", province: "四川"},
+	{pattern: "贵州省", province: "贵州"},
+	{pattern: "云南省", province: "云南"},
+	{pattern: "陕西省", province: "陕西"},
+	{pattern: "甘肃省", province: "甘肃"},
+	{pattern: "青海省", province: "青海"},
+	{pattern: "台湾省", province: "台湾"},
+	{pattern: "内蒙古自治区", province: "内蒙古"},
+	{pattern: "广西壮族自治区", province: "广西"},
+	{pattern: "西藏自治区", province: "西藏"},
+	{pattern: "宁夏回族自治区", province: "宁夏"},
+	{pattern: "新疆维吾尔自治区", province: "新疆"},
+	{pattern: "香港特别行政区", province: "香港"},
+	{pattern: "澳门特别行政区", province: "澳门"},
+	{pattern: "北京", province: "北京"},
+	{pattern: "天津", province: "天津"},
+	{pattern: "上海", province: "上海"},
+	{pattern: "重庆", province: "重庆"},
+	{pattern: "河北", province: "河北"},
+	{pattern: "山西", province: "山西"},
+	{pattern: "辽宁", province: "辽宁"},
+	{pattern: "吉林", province: "吉林"},
+	{pattern: "黑龙江", province: "黑龙江"},
+	{pattern: "江苏", province: "江苏"},
+	{pattern: "浙江", province: "浙江"},
+	{pattern: "安徽", province: "安徽"},
+	{pattern: "福建", province: "福建"},
+	{pattern: "江西", province: "江西"},
+	{pattern: "山东", province: "山东"},
+	{pattern: "河南", province: "河南"},
+	{pattern: "湖北", province: "湖北"},
+	{pattern: "湖南", province: "湖南"},
+	{pattern: "广东", province: "广东"},
+	{pattern: "海南", province: "海南"},
+	{pattern: "四川", province: "四川"},
+	{pattern: "贵州", province: "贵州"},
+	{pattern: "云南", province: "云南"},
+	{pattern: "陕西", province: "陕西"},
+	{pattern: "甘肃", province: "甘肃"},
+	{pattern: "青海", province: "青海"},
+	{pattern: "台湾", province: "台湾"},
+	{pattern: "内蒙古", province: "内蒙古"},
+	{pattern: "内蒙", province: "内蒙古"},
+	{pattern: "广西", province: "广西"},
+	{pattern: "西藏", province: "西藏"},
+	{pattern: "宁夏", province: "宁夏"},
+	{pattern: "新疆", province: "新疆"},
+	{pattern: "香港", province: "香港"},
+	{pattern: "澳门", province: "澳门"},
+}
+
 func normalizeIPGeoLocation(domestic, global string) (string, string) {
 	domestic = strings.TrimSpace(domestic)
 	global = strings.TrimSpace(global)
@@ -933,7 +1021,22 @@ func normalizeIPGeoLocation(domestic, global string) (string, string) {
 		return domestic, global
 	}
 
+	province := extractChinaProvince(domestic)
+	idc := isChinaIDCLabel(domestic)
+
 	cleaned := stripIPGeoISPKeywords(domestic)
+	if cleaned != "" && province == "" {
+		province = extractChinaProvince(cleaned)
+	}
+	if cleaned != "" && isChinaIDCLabel(cleaned) {
+		idc = true
+	}
+	if idc {
+		if province != "" {
+			return province, global
+		}
+		return "机房", global
+	}
 	if cleaned == "" {
 		cleaned = "中国"
 	}
@@ -966,6 +1069,55 @@ func stripIPGeoISPKeywords(domestic string) string {
 		cleanedParts = append(cleanedParts, part)
 	}
 	return strings.Join(cleanedParts, "·")
+}
+
+func isChinaIDCLabel(value string) bool {
+	clean := strings.ToLower(strings.TrimSpace(value))
+	if clean == "" || clean == "0" || clean == "未知" {
+		return false
+	}
+	for _, keyword := range ipGeoIDCKeywords {
+		if strings.Contains(clean, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+func extractChinaProvince(value string) string {
+	normalized := strings.NewReplacer(
+		"·", " ",
+		"/", " ",
+		"\\", " ",
+		"-", " ",
+		"_", " ",
+		"|", " ",
+		",", " ",
+		"，", " ",
+		";", " ",
+		"；", " ",
+		"(", " ",
+		")", " ",
+		"（", " ",
+		"）", " ",
+		"[", " ",
+		"]", " ",
+		"{", " ",
+		"}", " ",
+	).Replace(strings.TrimSpace(value))
+	for _, token := range strings.Fields(normalized) {
+		clean := strings.TrimPrefix(token, "中国")
+		clean = strings.TrimSpace(clean)
+		if clean == "" {
+			continue
+		}
+		for _, item := range chinaProvincePatterns {
+			if clean == item.pattern || strings.HasPrefix(clean, item.pattern) {
+				return item.province
+			}
+		}
+	}
+	return ""
 }
 
 func isISPKeyword(value string) bool {
